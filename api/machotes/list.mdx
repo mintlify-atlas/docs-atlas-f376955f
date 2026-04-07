@@ -1,0 +1,200 @@
+---
+title: "List machotes"
+description: "Retrieve a list of document templates (machotes). Use /machotes for all templates or /machotes/mis-machotes to scope results to the authenticated user."
+---
+
+## Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/machotes` | Returns all machotes visible to the authenticated user. |
+| `GET` | `/machotes/mis-machotes` | Returns only the machotes created by the authenticated user. |
+
+**Base URL:** `https://machotes-guardado.onrender.com`
+
+Both endpoints require a valid JWT in the `Authorization` header.
+
+---
+
+## Query parameters
+
+<ParamField query="term" type="string">
+  Free-text search term. Filters results by matching against the machote title, area, or content. Case-insensitive.
+
+  Example: `?term=constancia`
+</ParamField>
+
+<ParamField query="includeInactive" type="boolean">
+  When `true`, includes machotes with `status: "inactive"` (those that have been deactivated). Defaults to `false` — inactive machotes are hidden unless explicitly requested.
+
+  Example: `?includeInactive=true`
+</ParamField>
+
+---
+
+## Examples
+
+<CodeGroup>
+
+```bash All machotes
+curl https://machotes-guardado.onrender.com/machotes \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+```bash With search term
+curl "https://machotes-guardado.onrender.com/machotes?term=constancia" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+```bash My machotes only
+curl https://machotes-guardado.onrender.com/machotes/mis-machotes \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+```bash Include inactive
+curl "https://machotes-guardado.onrender.com/machotes?includeInactive=true" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+</CodeGroup>
+
+---
+
+## Response
+
+```json
+{
+  "items": [
+    {
+      "_id": "664a1f2e8c3b2a1d4e5f6789",
+      "title": "Constancia de Empleo",
+      "areaKey": "RH",
+      "area": "Recursos Humanos",
+      "status": "active",
+      "content": {
+        "html": "<p>Por medio del presente se hace constar que [NombreEmpleado]...</p>",
+        "json": null
+      },
+      "variables": [
+        {
+          "key": "NombreEmpleado",
+          "label": "NombreEmpleado",
+          "type": "string",
+          "required": true
+        },
+        {
+          "key": "Puesto",
+          "label": "Puesto",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "letterheadUrl": "https://res.cloudinary.com/demo/image/upload/v1/membretadas/rh_hoja.png",
+      "createdAt": "2024-06-15T10:00:00.000Z",
+      "updatedAt": "2026-03-20T14:30:00.000Z"
+    }
+  ]
+}
+```
+
+<ResponseField name="items" type="ApiMachote[]">
+  Array of machote objects. Empty array `[]` if no results match.
+
+  <Expandable title="ApiMachote fields">
+    <ResponseField name="_id" type="string">
+      MongoDB ObjectId. Use this as the `:id` path parameter in all single-machote endpoints.
+    </ResponseField>
+
+    <ResponseField name="title" type="string">
+      Human-readable name of the template.
+    </ResponseField>
+
+    <ResponseField name="areaKey" type="string">
+      Short code for the municipal area. Derived from the `area` name:
+
+      | Area | areaKey |
+      |---|---|
+      | Recursos Humanos | `RH` |
+      | Secretaría | `SEC` |
+      | Tesorería | `TES` |
+      | Obras Públicas | `OP` |
+      | Desarrollo Social | `DS` |
+      | Seguridad Pública | `SP` |
+      | Catastro | `CAT` |
+      | Servicios Públicos | `SERV` |
+      | (other) | `GEN` |
+    </ResponseField>
+
+    <ResponseField name="area" type="string">
+      Full name of the municipal area this template belongs to.
+    </ResponseField>
+
+    <ResponseField name="status" type="string">
+      Template lifecycle status. One of `"active"`, `"draft"`, or `"inactive"`.
+    </ResponseField>
+
+    <ResponseField name="content" type="object">
+      <Expandable title="content fields">
+        <ResponseField name="html" type="string">
+          The full HTML body of the template. Dynamic fields use `[FieldName]` bracket syntax.
+        </ResponseField>
+
+        <ResponseField name="json" type="object | null">
+          Optional structured representation of the content (editor-native format). May be `null`.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="variables" type="object[]">
+      Auto-extracted list of dynamic fields found in the HTML content.
+
+      <Expandable title="variable fields">
+        <ResponseField name="key" type="string">
+          The variable identifier as it appears inside brackets, e.g. `NombreEmpleado`.
+        </ResponseField>
+
+        <ResponseField name="label" type="string">
+          Display label for the variable. Defaults to the same value as `key`.
+        </ResponseField>
+
+        <ResponseField name="type" type="string">
+          Data type. Always `"string"` in the current implementation.
+        </ResponseField>
+
+        <ResponseField name="required" type="boolean">
+          Whether the field must be filled before a document can be generated. Always `true` for auto-extracted variables.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="letterheadUrl" type="string">
+      URL of the official letterhead image to overlay when printing or exporting the document.
+    </ResponseField>
+
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 creation timestamp.
+    </ResponseField>
+
+    <ResponseField name="updatedAt" type="string">
+      ISO 8601 last-modified timestamp.
+    </ResponseField>
+
+    <ResponseField name="fechaBaja" type="string">
+      ISO 8601 timestamp set when the machote was deactivated. Only present on `inactive` machotes.
+    </ResponseField>
+
+    <ResponseField name="fechaAlta" type="string">
+      ISO 8601 timestamp set when the machote was most recently reactivated. Only present if the machote was deactivated and then reactivated.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## `/machotes` vs `/machotes/mis-machotes`
+
+Use `/machotes` when you need to browse or search across all templates — for example, on a document creation screen where the user picks from any available template.
+
+Use `/machotes/mis-machotes` when you need to show only the templates that the currently authenticated user created — for example, on a personal dashboard or for managing your own drafts.
+
+Both endpoints accept the same `term` and `includeInactive` query parameters and return the same `{ items: ApiMachote[] }` response shape.

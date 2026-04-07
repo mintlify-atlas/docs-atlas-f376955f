@@ -1,0 +1,149 @@
+---
+title: "Letterhead management"
+description: "Upload, activate, and link official institutional letterheads (hojas membretadas) to document templates in MAPRISER ATOTO."
+---
+
+## What are hojas membretadas?
+
+**Hojas membretadas** (letterheads) are official institutional header images or PDF files applied to documents generated in MAPRISER ATOTO. Each letterhead is associated with a specific municipal area and can be attached to one or more machotes (document templates), so that every document generated from those machotes carries the correct official branding.
+
+Letterheads are stored in **Cloudinary** via the authentication API. The system stores both the original file URL and a JPEG preview URL — the preview is always used when rendering a letterhead inside a document.
+
+---
+
+## Who can manage letterheads
+
+| Role | Scope |
+|---|---|
+| **Administrador** | Can upload, view, activate/deactivate, and delete letterheads for all nine areas |
+| **Jefe de área** | Can upload, view, activate/deactivate, and delete letterheads for their permitted areas only |
+| **Usuario** | No access to letterhead management |
+
+<Warning>
+  Users with the **Auxiliar Administrativo** role cannot view or manage letterheads. Only administrators and area heads have access to this section.
+</Warning>
+
+---
+
+## Letterhead fields
+
+Each letterhead record contains the following fields.
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Unique identifier assigned by the API |
+| `areaId` | string | ID of the area this letterhead belongs to |
+| `nombre` | string | Display name for the letterhead |
+| `descripcion` | string | Optional description |
+| `archivo.url` | string | Original file URL in Cloudinary — use for downloads |
+| `archivo.previewUrl` | string | JPEG preview URL — always used when rendering in documents |
+| `archivo.publicId` | string | Cloudinary public ID |
+| `archivo.formato` | string | File format: `png`, `jpg`, `pdf`, or `webp` |
+| `archivo.bytes` | number | File size in bytes |
+| `activa` | boolean | Whether this letterhead is currently active and available for selection |
+| `subidaPor` | object | Uploader metadata: `nombre`, `apellidos`, `puesto` |
+| `creadoEn` | string | ISO 8601 timestamp of when the letterhead was uploaded |
+
+---
+
+## Supported formats
+
+| Format | Notes |
+|---|---|
+| PNG | Recommended for crisp logos and institutional headers |
+| JPG / JPEG | Good for photographic or complex headers |
+| WebP | Supported; renders cleanly in documents |
+| PDF | Supported but the API generates a JPEG preview for display |
+
+<Tip>
+  Use **PNG or JPG** for best results. PDF files are supported, but the system automatically converts them to a JPEG preview for display inside generated documents. Images render more cleanly and load faster than PDF-derived previews.
+</Tip>
+
+---
+
+## Uploading a letterhead
+
+<Steps>
+  <Step title="Navigate to letterhead management">
+    Open the **Gestión de Machotes** section for your area and locate the letterhead selector, or navigate directly to the letterhead management page for the target area.
+  </Step>
+  <Step title="Select a file">
+    Click **Seleccionar archivo** and choose a PNG, JPG, WebP, or PDF file from your computer. The file is sent as a multipart form upload using the `archivo` field to `POST /membretadas`.
+  </Step>
+  <Step title="Provide a name and optional description">
+    Enter a **nombre** for the letterhead (required) and an optional **descripción** that explains what this letterhead is for — for example, "Encabezado oficial 2024 – Recursos Humanos".
+  </Step>
+  <Step title="Confirm the area">
+    The `areaId` is automatically set to the area you are currently managing. Verify the area before submitting.
+  </Step>
+  <Step title="Submit">
+    Click **Subir**. The system uploads the file to Cloudinary and returns the full letterhead record including the `previewUrl`. The new letterhead appears in the list immediately.
+  </Step>
+</Steps>
+
+---
+
+## Activating and deactivating letterheads
+
+Each letterhead has an `activa` flag. Only active letterheads are available for selection when creating or editing a machote.
+
+- To activate a letterhead, click **Activar** on its card.
+- To deactivate a letterhead without deleting it, click **Desactivar**.
+
+Deactivating a letterhead does not affect machotes that already reference it — it only prevents the letterhead from appearing in the picker for new machotes.
+
+---
+
+## Linking letterheads to machotes
+
+When a machote is created or updated, you can associate a letterhead with it. The API stores this as a `letterheadRef` object on the machote record.
+
+```json
+"letterheadRef": {
+  "id": "<letterhead id>",
+  "areaId": "<area id>",
+  "nombre": "Encabezado oficial 2024 – Recursos Humanos"
+}
+```
+
+The `letterheadUrl` field on the machote is also set to the Cloudinary `previewUrl` of the selected letterhead, so it is applied automatically when a document is rendered.
+
+To change the letterhead on an existing machote, edit the machote and select a different letterhead from the picker. The update is sent via `PUT /machotes/:id`.
+
+---
+
+## Retrieving letterheads
+
+The API provides several endpoints for fetching letterhead data.
+
+| Operation | Endpoint |
+|---|---|
+| List letterheads for a specific area | `GET /membretadas/area/:areaId` |
+| List all letterheads (with optional `areaId` filter) | `GET /membretadas?areaId=...&page=1&limit=20` |
+| Get a single letterhead | `GET /membretadas/:id` |
+| Delete a letterhead | `DELETE /membretadas/:id` |
+
+All requests require a valid `Authorization: Bearer <token>` header. A 401 response clears the session and redirects to the login page.
+
+---
+
+## Deleting a letterhead
+
+<Warning>
+  Deleting a letterhead removes it from Cloudinary permanently. Any machote that references that letterhead via `letterheadRef` will retain the stored reference data, but the image will no longer be accessible. You should update or re-assign the letterhead on affected machotes before deleting.
+</Warning>
+
+To delete a letterhead, click the **Eliminar** button on its card and confirm the action. This sends `DELETE /membretadas/:id` to the API.
+
+---
+
+## Quick links
+
+<CardGroup cols={2}>
+  <Card title="Area management" icon="building" href="/admin/area-management">
+    Understand the nine municipal areas and their keys.
+  </Card>
+  <Card title="User management" icon="users" href="/admin/user-management">
+    Manage user accounts and area assignments.
+  </Card>
+</CardGroup>

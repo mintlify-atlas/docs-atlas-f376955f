@@ -1,0 +1,216 @@
+---
+title: "Upload a letterhead"
+description: "Upload a new letterhead image or PDF for a municipal area. Files are stored in Cloudinary. Also covers deleting a letterhead."
+---
+
+## Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/membretadas` | Upload a new letterhead file. |
+| `DELETE` | `/membretadas/:id` | Permanently delete a letterhead from Cloudinary and the database. |
+
+Both endpoints require a valid JWT token in the `Authorization` header.
+
+<Warning>
+  This API is hosted on Render.com's free tier (Auth server: `https://login-pwa-atoto.onrender.com`). If the service has been idle, the first request may take up to **30 seconds** while the server cold-starts.
+</Warning>
+
+---
+
+## Upload a letterhead
+
+```
+POST https://login-pwa-atoto.onrender.com/membretadas
+```
+
+Accepts a `multipart/form-data` request. Do **not** set `Content-Type: application/json` — the browser or HTTP client must set the multipart boundary automatically.
+
+<Info>
+  Supported file formats: **PNG**, **JPG**, **WebP**, and **PDF**. For PDF uploads, Cloudinary automatically generates a JPEG preview image, which is returned in `archivo.previewUrl`. For image uploads, `previewUrl` points to the original image.
+</Info>
+
+### Form fields
+
+<ParamField body="archivo" type="File" required>
+  The letterhead file to upload. Must be one of: PNG, JPG, WebP, or PDF. This field **must** be named exactly `archivo` — any other field name will be rejected.
+</ParamField>
+
+<ParamField body="areaId" type="string" required>
+  The area this letterhead belongs to. Use one of the area keys: `RH`, `SEC`, `TES`, `OP`, `DS`, `SP`, `CAT`, `SERV`.
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  A human-readable display name for the letterhead. Shown in the letterhead picker when editing a machote.
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Optional description of the letterhead's intended use or the documents it is associated with.
+</ParamField>
+
+### Example
+
+```bash
+curl -X POST https://login-pwa-atoto.onrender.com/membretadas \
+  -H "Authorization: Bearer <token>" \
+  -F "archivo=@/path/to/membretada_rh_2025.pdf" \
+  -F "areaId=RH" \
+  -F "nombre=Membretada Oficial RH 2025" \
+  -F "descripcion=Hoja membretada para oficios y comunicados del área de Recursos Humanos"
+```
+
+<Note>
+  Do not include `-H "Content-Type: multipart/form-data"` manually when using `-F` flags with curl. curl sets the correct `Content-Type` header with the multipart boundary automatically.
+</Note>
+
+### Response
+
+Returns a `hoja` object containing the uploaded letterhead's full metadata.
+
+```json
+{
+  "hoja": {
+    "id": "6651d4e5f6a7b8c9d0e1f2a3",
+    "areaId": "RH",
+    "nombre": "Membretada Oficial RH 2025",
+    "descripcion": "Hoja membretada para oficios y comunicados del área de Recursos Humanos",
+    "archivo": {
+      "url": "https://res.cloudinary.com/atoto/raw/upload/v1/membretadas/rh_oficial_2025.pdf",
+      "previewUrl": "https://res.cloudinary.com/atoto/image/upload/v1/membretadas/rh_oficial_2025.jpg",
+      "publicId": "membretadas/rh_oficial_2025",
+      "formato": "pdf",
+      "bytes": 245760
+    },
+    "activa": true,
+    "subidaPor": {
+      "nombre": "Martín",
+      "apellidos": "Juárez Hernández",
+      "puesto": "Jefe de Recursos Humanos"
+    },
+    "creadoEn": "2026-04-07T10:00:00.000Z",
+    "actualizadoEn": "2026-04-07T10:00:00.000Z"
+  }
+}
+```
+
+<ResponseField name="hoja" type="object">
+  The created letterhead object.
+
+  <Expandable title="hoja fields">
+    <ResponseField name="id" type="string">
+      Unique letterhead ID. Use this in subsequent GET, PUT, or DELETE requests.
+    </ResponseField>
+
+    <ResponseField name="areaId" type="string">
+      The area key this letterhead was assigned to.
+    </ResponseField>
+
+    <ResponseField name="nombre" type="string">
+      Display name as submitted.
+    </ResponseField>
+
+    <ResponseField name="descripcion" type="string">
+      Description as submitted, or an empty string if omitted.
+    </ResponseField>
+
+    <ResponseField name="archivo" type="object">
+      Cloudinary file metadata.
+
+      <Expandable title="archivo fields">
+        <ResponseField name="url" type="string">
+          Original file URL in Cloudinary. For PDF uploads this is a raw PDF URL — use it for download links, not image rendering.
+        </ResponseField>
+
+        <ResponseField name="previewUrl" type="string">
+          JPEG image URL. For PDF uploads, Cloudinary generates this preview automatically from the first page. For image uploads, this is the original image URL converted to JPEG. Always safe to use in an `<img>` tag.
+        </ResponseField>
+
+        <ResponseField name="publicId" type="string">
+          Cloudinary public ID used internally for transformations and deletion.
+        </ResponseField>
+
+        <ResponseField name="formato" type="string">
+          Original file format: `png`, `jpg`, `webp`, or `pdf`.
+        </ResponseField>
+
+        <ResponseField name="bytes" type="number">
+          File size in bytes.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="activa" type="boolean">
+      Always `true` for newly uploaded letterheads.
+    </ResponseField>
+
+    <ResponseField name="subidaPor" type="object">
+      Identity of the authenticated user who uploaded the file, sourced from the JWT token.
+
+      <Expandable title="subidaPor fields">
+        <ResponseField name="nombre" type="string">First name.</ResponseField>
+        <ResponseField name="apellidos" type="string">Last name(s).</ResponseField>
+        <ResponseField name="puesto" type="string">Job title.</ResponseField>
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="creadoEn" type="string">
+      ISO 8601 timestamp of when the letterhead was uploaded.
+    </ResponseField>
+
+    <ResponseField name="actualizadoEn" type="string">
+      ISO 8601 timestamp of the last update.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## Delete a letterhead
+
+```
+DELETE https://login-pwa-atoto.onrender.com/membretadas/{id}
+```
+
+Removes the letterhead record from the database **and** deletes the file from Cloudinary. Both operations are performed server-side in a single request.
+
+<Warning>
+  Deleting a letterhead that is referenced by one or more active machotes (`letterheadUrl` or `letterheadRef`) will cause those machotes to lose their associated letterhead. The machote content is not deleted, but the letterhead image will no longer be available for preview or print. Review all machotes that use this letterhead before deleting it.
+</Warning>
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The `id` of the letterhead to delete.
+</ParamField>
+
+### Example
+
+```bash
+curl -X DELETE "https://login-pwa-atoto.onrender.com/membretadas/6651d4e5f6a7b8c9d0e1f2a3" \
+  -H "Authorization: Bearer <token>"
+```
+
+### Response
+
+Returns a JSON object with a confirmation message.
+
+```json
+{
+  "message": "Hoja membretada eliminada correctamente"
+}
+```
+
+<ResponseField name="message" type="string">
+  Human-readable confirmation that the letterhead and its Cloudinary asset were deleted.
+</ResponseField>
+
+---
+
+## Error responses
+
+| HTTP status | Cause |
+|---|---|
+| `400` | Missing required form field (`archivo`, `areaId`, or `nombre`) or unsupported file format. |
+| `401` | Missing or invalid `Authorization` header. |
+| `404` | No letterhead found with the given `id` (DELETE). |
+| `500` | Internal server error, or Cloudinary upload/delete failure. Retry after a few seconds. |

@@ -1,0 +1,107 @@
+---
+title: "Document generation"
+description: "Fill in a template's dynamic fields, preview the result with the official letterhead, then download as PDF, print, or save as a draft for later."
+---
+
+Document generation is the core daily workflow in MAPRISER ATOTO. You select a template (machote), complete all of its dynamic fields, review the document with the institutional letterhead applied, and then export or save the result.
+
+<Info>
+  The institutional letterhead is applied automatically based on the area configured on the selected template. You do not need to attach it manually — the correct letterhead for the department is loaded from the area's registered letterhead images and overlaid on every page of the document.
+</Info>
+
+## Generation flow
+
+<Steps>
+  ### Select a template
+
+  Open the **Machotes Disponibles** screen. Templates are grouped by department (`area`). Administrators see all templates across all areas; area users see only templates belonging to their assigned department.
+
+  Use the search bar to filter by template name, area, or description. Click a card or the **Generar Documento** button to proceed.
+
+  If a template has been used before, you can open its history first (via **Historial del Machote**) to review previous versions before starting a new one.
+
+  ### Fill in the dynamic fields
+
+  Every `[VARIABLE]` placeholder defined in the template appears as a labeled form field in the **Campos del Documento** panel on the left side of the screen.
+
+  Fields whose names match common date or time patterns are pre-filled automatically:
+
+  | Variable name (case-insensitive) | Auto-filled value |
+  |---|---|
+  | `Fecha`, any name containing `fecha` | Today's date formatted as `DD/MM/YYYY` |
+  | `Año`, `Ano`, any name containing `año` | Current four-digit year |
+  | `Dia`, `Día` | Current day of the month |
+  | `Hora` | Current time formatted as `HH:MM AM/PM` |
+
+  All other fields start empty and must be completed manually.
+
+  As you type in each field, the document preview on the right updates in real time: every occurrence of `[NombreEmpleado]`, `[FechaInicio]`, `[PuestoTrabajo]`, and so on is replaced with the value you entered.
+
+  ### Preview the document
+
+  The right panel shows a live preview rendered at 75 % zoom by default. You can increase or decrease the zoom with the `+` and `-` controls, or reset it with the rotate icon.
+
+  The preview is rendered by `UnifiedDocumentRenderer`, which displays the document as one or more letter-sized pages (794 × 1123 px each) with the selected letterhead applied as a background layer. The content area sits within fixed margins (top 160 px, bottom 100 px, left/right 72 px) so the text does not overlap the letterhead's header or footer graphic.
+
+  If you need a larger view, click the expand icon to open the document in a full-screen dialog at 90 % zoom.
+
+  If your area has more than one letterhead registered, a selector appears in the preview toolbar. Choose the appropriate one before exporting.
+
+  ### Export or save
+
+  Once the document looks correct, you have four options:
+
+  - **Guardar Borrador** — saves the document with `status: "borrador"`. The filled field values (`campos`) are persisted to the API and can be retrieved from the document history for later editing.
+  - **Marcar como Final** — changes the status to `"final"`. Final documents cannot be edited further.
+  - **PDF** — downloads the document as a PDF file.
+  - **Imprimir** — opens the browser's native print dialog with the document rendered at its actual letter dimensions.
+</Steps>
+
+## Document statuses
+
+Every saved document has one of two statuses:
+
+| Status | Description | Editable |
+|---|---|---|
+| `borrador` | Draft — fields can still be changed | Yes |
+| `final` | Finalized — the document is locked | No |
+
+A document always starts as `borrador` when first saved. You explicitly promote it to `final` by clicking **Marcar como Final**. This is a one-way transition: there is no way to revert a final document back to draft.
+
+## PDF export
+
+The PDF is generated client-side using **html2canvas** and **jsPDF**:
+
+1. The application waits for all images in the document (including the letterhead) to finish loading.
+2. Each page (`document-page` element, 794 × 1123 px) is cloned and temporarily inserted off-screen.
+3. `html2canvas` renders the cloned page at `scale: 2` (double resolution for crisp output), with `useCORS: true` to load cross-origin letterhead images.
+4. Any `oklch()` color values — which html2canvas cannot parse — are converted to standard RGB values before capture.
+5. The canvas is exported as JPEG at 95 % quality.
+6. `jsPDF` creates a letter-size PDF (`216 mm × 279 mm`, portrait) and adds the JPEG image for each page.
+7. The resulting `.pdf` file is saved to the user's device.
+
+The output filename follows the pattern `<DocumentName>_<timestamp>.pdf`.
+
+<Warning>
+  PDF generation is performed entirely in the browser. On very long documents or on slower devices, the process may take several seconds per page. Do not close or navigate away from the tab while the PDF is being generated.
+</Warning>
+
+## Print preview
+
+Clicking **Imprimir** does not open the `PrintPreviewModal` component directly — it generates a self-contained HTML page with `@page { size: letter; margin: 0; }` styles and loads it into a hidden `<iframe>`, then calls `iframe.contentWindow.print()` to trigger the browser's native print dialog.
+
+The generated print HTML preserves:
+- The letterhead as a full-page background image with `print-color-adjust: exact`
+- Correct letter-size page dimensions (`216 mm × 279 mm`)
+- `page-break-after: always` between pages for multi-page documents
+- Bottom padding (`25 mm`) to protect the letterhead's footer area
+
+If the document uses a letterhead image, the system waits up to 2.5 seconds for the image to load inside the iframe before opening the print dialog.
+
+The `PrintPreviewModal` component is used in a separate flow (template creation) and renders the document inside an inline iframe within the modal, with a print button that calls `iframe.contentWindow.print()`.
+
+## Role-based visibility
+
+- **`empleado`** — generates documents from templates assigned to their area. Cannot edit templates.
+- **`jefe_area`** — all of the above, plus the ability to open the template editor directly from the generation screen via the **Editar Machote** button.
+- **`administrador`** — full access to templates and documents from all areas.

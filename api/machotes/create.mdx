@@ -1,0 +1,190 @@
+---
+title: "Create a machote"
+description: "Create a new document template (machote) in the system. Variables are auto-extracted from the HTML content using [FieldName] bracket syntax."
+---
+
+## Endpoint
+
+```
+POST https://machotes-guardado.onrender.com/machotes
+```
+
+Requires a valid JWT in the `Authorization` header.
+
+---
+
+## How variables are extracted
+
+When creating a machote, write dynamic field placeholders directly in the HTML content using square-bracket syntax:
+
+```
+[NombreEmpleado], [Puesto], [FechaExpedicion]
+```
+
+The API automatically scans the `content.html` string for all `[FieldName]` patterns and populates the `variables` array. You do not need to build the `variables` array manually — the server derives it from the content. If you pass a `variables` array in the request body, it will be used as-is; if you omit it, the server extracts variables from the HTML.
+
+---
+
+## How `areaKey` is derived
+
+The `areaKey` is a short code mapped from the full `area` name:
+
+| `area` | `areaKey` |
+|---|---|
+| Recursos Humanos | `RH` |
+| Secretaría | `SEC` |
+| Secretaría / Tesorería | `SEC` |
+| Tesorería | `TES` |
+| Obras Públicas | `OP` |
+| Desarrollo Social | `DS` |
+| Seguridad Pública | `SP` |
+| Catastro | `CAT` |
+| Servicios Públicos | `SERV` |
+| (any other value) | `GEN` |
+
+---
+
+## Request body
+
+<ParamField body="title" type="string" required>
+  Human-readable name for the template. Should be descriptive and unique within an area.
+
+  Example: `"Constancia de Empleo"`
+</ParamField>
+
+<ParamField body="area" type="string" required>
+  Full name of the municipal area this template belongs to. Must match one of the canonical area names (see the mapping table above) to get a known `areaKey`.
+</ParamField>
+
+<ParamField body="areaKey" type="string" required>
+  Short area code. Derive this from the `area` value using the mapping table above. Use `"GEN"` for areas not in the table.
+</ParamField>
+
+<ParamField body="status" type="string" required>
+  Initial lifecycle status. One of `"active"`, `"draft"`, or `"inactive"`. New templates created by the application default to `"active"`.
+</ParamField>
+
+<ParamField body="content" type="object" required>
+  The template content.
+
+  <Expandable title="content fields">
+    <ParamField body="content.html" type="string" required>
+      Full HTML body of the template. Use `[FieldName]` placeholders for dynamic fields that will be filled when generating a document.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="variables" type="object[]">
+  Array of variable definitions. If omitted, the server auto-extracts variables from `content.html`. If provided, each entry must include:
+
+  <Expandable title="variable fields">
+    <ParamField body="variables[].key" type="string" required>
+      Variable identifier matching the placeholder in HTML (without brackets).
+    </ParamField>
+
+    <ParamField body="variables[].label" type="string" required>
+      Human-readable label for the input field. Usually the same as `key`.
+    </ParamField>
+
+    <ParamField body="variables[].type" type="string" required>
+      Data type. Use `"string"` for all text fields.
+    </ParamField>
+
+    <ParamField body="variables[].required" type="boolean" required>
+      Whether this field must be filled before a document can be exported.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="letterheadUrl" type="string" required>
+  URL of the official letterhead image to apply when printing this template. Typically a Cloudinary URL obtained from the letterheads (hojas membretadas) API.
+</ParamField>
+
+<ParamField body="actor" type="object">
+  Optional audit information about the user performing the action. Populated automatically by the client from `localStorage`. If included, it is stored in the audit log for this machote.
+
+  <Expandable title="actor fields">
+    <ParamField body="actor.userId" type="string">
+      The user's `id` from their profile.
+    </ParamField>
+
+    <ParamField body="actor.name" type="string">
+      The user's `nombreCompleto`.
+    </ParamField>
+
+    <ParamField body="actor.email" type="string">
+      The user's email address.
+    </ParamField>
+
+    <ParamField body="actor.role" type="string">
+      The user's role (`ADMIN`, `JEFE_AREA`, `EMPLEADO`, or `ASISTENTE`).
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+---
+
+## Example
+
+```bash
+curl -X POST https://machotes-guardado.onrender.com/machotes \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -d '{
+    "title": "Constancia de Empleo",
+    "area": "Recursos Humanos",
+    "areaKey": "RH",
+    "status": "active",
+    "content": {
+      "html": "<p>Por medio del presente se hace constar que <strong>[NombreEmpleado]</strong>, con puesto de <strong>[Puesto]</strong>, labora en este H. Ayuntamiento desde [FechaIngreso].</p><p>Se expide el [FechaExpedicion].</p>"
+    },
+    "variables": [
+      { "key": "NombreEmpleado", "label": "NombreEmpleado", "type": "string", "required": true },
+      { "key": "Puesto", "label": "Puesto", "type": "string", "required": true },
+      { "key": "FechaIngreso", "label": "FechaIngreso", "type": "string", "required": true },
+      { "key": "FechaExpedicion", "label": "FechaExpedicion", "type": "string", "required": true }
+    ],
+    "letterheadUrl": "https://res.cloudinary.com/demo/image/upload/v1/membretadas/rh_hoja.png",
+    "actor": {
+      "userId": "64f2a1b3c9e4f5d6e7a8b9c0",
+      "name": "Martín Juárez Hernández",
+      "email": "juarez.m@atotonilco.gob.mx",
+      "role": "JEFE_AREA"
+    }
+  }'
+```
+
+---
+
+## Response
+
+Returns the created machote wrapped in a `data` envelope.
+
+```json
+{
+  "data": {
+    "_id": "664a1f2e8c3b2a1d4e5f6789",
+    "title": "Constancia de Empleo",
+    "areaKey": "RH",
+    "area": "Recursos Humanos",
+    "status": "active",
+    "content": {
+      "html": "<p>Por medio del presente se hace constar que <strong>[NombreEmpleado]</strong>...</p>",
+      "json": null
+    },
+    "variables": [
+      { "key": "NombreEmpleado", "label": "NombreEmpleado", "type": "string", "required": true },
+      { "key": "Puesto", "label": "Puesto", "type": "string", "required": true },
+      { "key": "FechaIngreso", "label": "FechaIngreso", "type": "string", "required": true },
+      { "key": "FechaExpedicion", "label": "FechaExpedicion", "type": "string", "required": true }
+    ],
+    "letterheadUrl": "https://res.cloudinary.com/demo/image/upload/v1/membretadas/rh_hoja.png",
+    "createdAt": "2026-04-07T08:00:00.000Z",
+    "updatedAt": "2026-04-07T08:00:00.000Z"
+  }
+}
+```
+
+<ResponseField name="data" type="ApiMachote">
+  The newly created machote. Store the `data._id` value — you will need it to update, deactivate, or reference this machote when generating documents.
+</ResponseField>

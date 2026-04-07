@@ -1,0 +1,227 @@
+---
+title: "Update a document"
+description: "Update the field values or status of an existing document. Also covers deleting a document permanently."
+---
+
+## Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `PUT` | `/documentos/:id` | Update campos and/or status of a document. |
+| `DELETE` | `/documentos/:id` | Permanently delete a document. |
+
+Both endpoints require a valid JWT token in the `Authorization` header.
+
+<Warning>
+  This API is hosted on Render.com's free tier. If the service has been idle, the first request may take up to **30 seconds** while the server cold-starts. The client automatically retries once after 1 second on timeout — plan for this latency in your UI.
+</Warning>
+
+---
+
+## Update a document
+
+```
+PUT https://machotes-guardado.onrender.com/documentos/{id}
+```
+
+All request body fields are optional. Send only the fields you want to change.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The `_id` of the document to update.
+</ParamField>
+
+### Request body
+
+<ParamField body="campos" type="object">
+  A key-value map of field values to update. You can send a partial map — only the keys you include will be updated. To replace all fields at once, send the complete `campos` object.
+
+  ```json
+  {
+    "NombreEmpleado": "Ana Pérez Ramírez",
+    "PuestoTrabajo": "Secretaria"
+  }
+  ```
+</ParamField>
+
+<ParamField body="status" type="string">
+  New lifecycle state for the document. Accepted values:
+
+  - `borrador` — mark as draft (can be edited further)
+  - `final` — mark as completed and official (typically triggers print/export)
+</ParamField>
+
+<ParamField body="actor" type="object">
+  Identity of the user performing the update. Used to populate the `updatedBy` audit field. If omitted, the server records what it can from the authenticated token.
+
+  <Expandable title="actor fields">
+    <ParamField body="actor.userId" type="string">
+      MongoDB ID or email address of the user.
+    </ParamField>
+    <ParamField body="actor.name" type="string">
+      Full display name of the user.
+    </ParamField>
+    <ParamField body="actor.email" type="string">
+      Email address of the user.
+    </ParamField>
+    <ParamField body="actor.role" type="string">
+      Authorization role. One of `ADMIN`, `JEFE_AREA`, `EMPLEADO`, `ASISTENTE`.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<Note>
+  The `actor` field is written to `updatedBy` in the stored document and provides a full audit trail of who made the change and when. Always include it so the change history is accurate.
+</Note>
+
+### Examples
+
+<CodeGroup>
+
+```bash Promote draft to final
+curl -X PUT "https://machotes-guardado.onrender.com/documentos/6650c3d4e5f6a7b8c9d0e1f2" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "status": "final",
+    "actor": {
+      "userId": "64f2a1b3c9e4f5d6e7a8b9c0",
+      "name": "Martín Juárez Hernández",
+      "email": "juarez.m@atotonilco.gob.mx",
+      "role": "JEFE_AREA"
+    }
+  }'
+```
+
+```bash Update campos
+curl -X PUT "https://machotes-guardado.onrender.com/documentos/6650c3d4e5f6a7b8c9d0e1f2" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "campos": {
+      "NombreEmpleado": "Ana Pérez Ramírez",
+      "FechaInicio": "15/04/2025",
+      "PuestoTrabajo": "Secretaria"
+    },
+    "actor": {
+      "userId": "64f2a1b3c9e4f5d6e7a8b9c0",
+      "name": "Martín Juárez Hernández",
+      "email": "juarez.m@atotonilco.gob.mx",
+      "role": "JEFE_AREA"
+    }
+  }'
+```
+
+</CodeGroup>
+
+### Response
+
+Returns the updated `DocumentoAPI` object.
+
+```json
+{
+  "_id": "6650c3d4e5f6a7b8c9d0e1f2",
+  "machoteId": "664a1f2e3b8c9d0e1f2a3b4c",
+  "campos": {
+    "NombreEmpleado": "Ana Pérez Ramírez",
+    "FechaInicio": "15/04/2025",
+    "PuestoTrabajo": "Secretaria"
+  },
+  "status": "final",
+  "createdBy": {
+    "userId": "64f2a1b3c9e4f5d6e7a8b9c0",
+    "name": "Martín Juárez Hernández",
+    "email": "juarez.m@atotonilco.gob.mx",
+    "role": "JEFE_AREA"
+  },
+  "updatedBy": {
+    "userId": "64f2a1b3c9e4f5d6e7a8b9c0",
+    "name": "Martín Juárez Hernández",
+    "email": "juarez.m@atotonilco.gob.mx",
+    "role": "JEFE_AREA"
+  },
+  "createdAt": "2026-04-07T08:15:00.000Z",
+  "updatedAt": "2026-04-07T09:30:00.000Z"
+}
+```
+
+<ResponseField name="_id" type="string">
+  MongoDB document ID.
+</ResponseField>
+
+<ResponseField name="machoteId" type="string">
+  ID of the parent machote. Unchanged by PUT.
+</ResponseField>
+
+<ResponseField name="campos" type="object">
+  The updated key-value map of field values.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  `borrador` or `final`. Reflects the new value if `status` was included in the request.
+</ResponseField>
+
+<ResponseField name="createdBy" type="object">
+  Unchanged audit record of the original creator.
+</ResponseField>
+
+<ResponseField name="updatedBy" type="object">
+  Audit record of the user who performed this update. Populated from the `actor` field in the request body.
+
+  <Expandable title="updatedBy fields">
+    <ResponseField name="userId" type="string">MongoDB ID or email.</ResponseField>
+    <ResponseField name="name" type="string">Full name.</ResponseField>
+    <ResponseField name="email" type="string">Email address.</ResponseField>
+    <ResponseField name="role" type="string">Role at time of update.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  ISO 8601 creation timestamp. Unchanged by PUT.
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp updated automatically by the server on every successful PUT.
+</ResponseField>
+
+---
+
+## Delete a document
+
+```
+DELETE https://machotes-guardado.onrender.com/documentos/{id}
+```
+
+Permanently removes the document from the database.
+
+<Warning>
+  Deletion is permanent and cannot be undone. There is no soft-delete or trash mechanism. Confirm the user's intent before calling this endpoint.
+</Warning>
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The `_id` of the document to delete.
+</ParamField>
+
+### Example
+
+```bash
+curl -X DELETE "https://machotes-guardado.onrender.com/documentos/6650c3d4e5f6a7b8c9d0e1f2" \
+  -H "Authorization: Bearer <token>"
+```
+
+### Response
+
+Returns `204 No Content` on success. The response body is empty.
+
+---
+
+## Error responses
+
+| HTTP status | Cause |
+|---|---|
+| `401` | Missing or invalid `Authorization` header. |
+| `404` | No document found with the given `id`. |
+| `500` | Internal server error. Retry after a few seconds if the service just cold-started. |

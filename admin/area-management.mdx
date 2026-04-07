@@ -1,0 +1,138 @@
+---
+title: "Area management"
+description: "Understand the nine predefined municipal areas in MAPRISER ATOTO and how users and machotes are organized by area."
+---
+
+<Info>
+  The nine municipal areas in MAPRISER ATOTO are defined in the system configuration (`src/app/constants/areas.ts`). They are not created or deleted through the interface — they are fixed entries that reflect the organizational structure of the H. Ayuntamiento de Atotonilco de Tula.
+</Info>
+
+## Overview
+
+Every user, machote (document template), and letterhead in the system belongs to one or more **areas**. Areas act as the primary organizational unit: they determine which machotes a user can see, which letterheads are available, and what permissions an area head can exercise.
+
+The **Gestión de Áreas** section is accessible from the sidebar under **Administración** and is restricted to administrators.
+
+---
+
+## The nine municipal areas
+
+| Area | Key (`clave`) | System ID |
+|---|---|---|
+| Recursos Humanos | `RH` | `recursos-humanos` |
+| Secretaría | `SEC` | `secretaria` |
+| Tesorería | `TES` | `tesoreria` |
+| Obras Públicas | `OP` | `obras-publicas` |
+| Desarrollo Social | `DS` | `desarrollo-social` |
+| Seguridad Pública | `SP` | `seguridad-publica` |
+| Catastro | `CAT` | `catastro` |
+| Servicios Públicos | `SERV` | `servicios-publicos` |
+| Transparencia e Informática | `TEI` | `transparencia-informatica` |
+
+The **key** (`clave`) is the short identifier used throughout the system — most importantly as the `areaKey` field when creating or updating machotes via the API.
+
+---
+
+## Area properties
+
+In the `AreaContext`, each area used for display in the administration panel carries the following fields.
+
+| Field | Description |
+|---|---|
+| `id` | Unique identifier (matches the system ID column above) |
+| `nombre` | Full name of the area as displayed in the UI |
+| `descripcion` | Brief description of the area's function |
+| `jefeId` | ID of the user assigned as area head |
+| `jefeNombre` | Display name of the area head |
+| `activa` | Whether the area is currently active |
+| `fechaCreacion` | Date the area record was created |
+| `cantidadUsuarios` | Number of users currently assigned to the area |
+
+---
+
+## Why areas are fixed
+
+The nine areas reflect the official departmental structure of the municipality. They are declared as constants in `AREAS_SISTEMA` (`src/app/constants/areas.ts`) and serve as the **single source of truth** for area names and keys across the entire application.
+
+Because machotes, letterheads, and user permissions all reference area names or keys by exact string match, changing an area name would break existing references. Adding or removing areas requires a code change, not an administrative action.
+
+The administration panel (`GestionAreas`) lets you update an area's **description**, **area head**, and **active status** — but not its name or key.
+
+---
+
+## How users are assigned to areas
+
+Users are assigned to areas through the `areasPermitidas` field — an array of area names on the user account. Assignment happens in two ways:
+
+<Steps>
+  <Step title="At account creation">
+    When an administrator creates a new user, they select one or more areas from the full list of nine using the checkbox grid in the **Nuevo Usuario** dialog.
+  </Step>
+  <Step title="After account creation">
+    An administrator can update an existing user's areas by opening **Ver Detalle** for that user, clicking **Editar**, modifying the area checkboxes, and saving. This calls `PATCH /admin/users/:id/areas`.
+  </Step>
+</Steps>
+
+The first entry in `areasPermitidas` is treated as the user's **primary area** and is shown in the sidebar header and user cards throughout the application.
+
+Area heads can only assign users to areas within their own `areasPermitidas` list. If a jefe de área has only one permitted area, it is pre-selected automatically when they create a new user.
+
+---
+
+## The `clave` field and machote creation
+
+When a machote is created (via `POST /machotes`), the API requires an `areaKey` field — the short key from the table above. The application resolves this automatically using the `AREA_KEY_MAP` in `src/app/services/api.ts`, which maps full area names to their keys.
+
+For example:
+- "Recursos Humanos" → `RH`
+- "Obras Públicas" → `OP`
+- "Transparencia e Informática" → `TEI`
+
+If a machote is associated with an area that does not have a matching key (which should not occur with the predefined areas), the system falls back to `GEN`.
+
+---
+
+## AreaContext and area filtering
+
+The `AreaContext` (`src/app/contexts/AreaContext.tsx`) manages area data in the client's local state and provides it to all components via the `useAreas()` hook.
+
+| Method/Property | Description |
+|---|---|
+| `areas` | Current list of area records held in local state |
+| `agregarArea` | Add an area record to local state |
+| `actualizarArea` | Update area fields (description, head, active status) in local state |
+| `eliminarArea` | Remove an area record from local state |
+| `obtenerAreaPorId` | Look up a single area by ID |
+
+When a user selects an area from the sidebar or changes their active area context, the machote list filters to show only templates associated with that area. Administrators see all machotes across all areas.
+
+---
+
+## Managing areas
+
+<Warning>
+  Only administrators can access the **Gestión de Áreas** section. If you attempt to navigate to it as a jefe de área or usuario, you will be redirected with a "No tienes permisos" message.
+</Warning>
+
+From the **Gestión de Áreas** page you can:
+
+- View a card for each area showing name, description, area head, user count, and active status
+- Search areas by name, description, or head name
+- Edit an area's **description** or **assigned area head** by clicking **Editar** (the name and key cannot be changed)
+- Toggle an area between active and inactive using **Activar / Desactivar**
+- Delete an area record — note that this removes the display record only and does not affect user `areasPermitidas` or machote `areaKey` references
+
+The statistics panel shows the total number of areas, how many are active, how many are inactive, and the total user count across all areas.
+
+---
+
+## Quick links
+
+<CardGroup cols={2}>
+  <Card title="User management" icon="users" href="/admin/user-management">
+    Learn how to create users and assign them to areas.
+  </Card>
+  <Card title="Letterhead management" icon="image" href="/admin/letterhead-management">
+    Upload and activate official letterheads for each area.
+  </Card>
+</CardGroup>

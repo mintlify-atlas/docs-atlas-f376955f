@@ -1,0 +1,124 @@
+---
+title: "Roles and permissions"
+description: "MAPRISER ATOTO uses three roles — administrator, area head, and standard user — each mapped from the API and controlling what a user can see and do."
+---
+
+Every MAPRISER account has exactly one role. The role is assigned by an administrator and maps from the API value to the internal role name used throughout the application:
+
+| API role | Internal role | Display label |
+|---|---|---|
+| `ADMIN` | `administrador` | Administrador General |
+| `JEFE_AREA` | `jefe_area` | Director |
+| `EMPLEADO` | `usuario` | Auxiliar Administrativo |
+
+<Info>
+  Roles are set by the administrator when a user account is created or updated. Users cannot change their own role.
+</Info>
+
+## Role descriptions
+
+<AccordionGroup>
+  <Accordion title="Administrator (ADMIN)">
+    Administrators have unrestricted access to every area, machote, user, and document in the system.
+
+    **What you can do:**
+    - View and manage machotes from all nine municipal areas.
+    - Create new machotes, edit existing ones, and deactivate templates that are no longer in use.
+    - Manage all user accounts: create users, activate or deactivate accounts, reset passwords, assign roles, and upload user avatars.
+    - Assign users to one or more `areasPermitidas` (permitted areas).
+    - Manage area configuration and upload or replace letterhead images for any area.
+    - Generate documents from any machote in any area.
+    - View the full document history and statistics across all departments.
+
+    **Sidebar sections visible:** Inicio, Crear Documento, Mi Perfil, Gestionar Machotes, Gestionar Áreas, Gestionar Usuarios.
+  </Accordion>
+
+  <Accordion title="Area head (JEFE_AREA)">
+    Area heads manage templates and users within their assigned areas. They cannot access areas they have not been assigned to.
+
+    **What you can do:**
+    - View and manage machotes for your assigned areas.
+    - Create new machotes and edit or deactivate existing templates in your areas.
+    - View and manage the user list for your area, including resetting passwords for users in your area.
+    - Generate documents from any machote in your assigned areas.
+    - View the document history for your areas.
+
+    **What you cannot do:**
+    - Access or modify machotes, documents, or users in areas outside your `areasPermitidas`.
+    - Create or deactivate user accounts (only administrators can do this).
+    - Manage letterhead configuration.
+
+    **Sidebar sections visible:** Inicio, Crear Documento, Mi Perfil, Gestionar Machotes, Mis Usuarios.
+  </Accordion>
+
+  <Accordion title="Standard user (EMPLEADO / usuario)">
+    Standard users generate documents from existing templates. They work within one primary area.
+
+    **What you can do:**
+    - Browse and search machotes available for your assigned area.
+    - Select a machote, fill in the required dynamic fields, and preview the rendered document.
+    - Download the completed document as a PDF or send it directly to a printer.
+    - View your personal document history for the current area.
+
+    **What you cannot do:**
+    - Create, edit, or deactivate machotes.
+    - Access machotes or history from other areas.
+    - View or manage other users' accounts.
+    - Access administration sections.
+
+    **Sidebar sections visible:** Inicio, Crear Documento, Mi Perfil.
+  </Accordion>
+</AccordionGroup>
+
+## Areas permitted (areasPermitidas)
+
+In addition to a role, each user can be assigned to one or more areas through the `areasPermitidas` field. This is independent of the role and controls which department's machotes and documents the user can see.
+
+- **Administrators** always have access to all nine areas regardless of `areasPermitidas`.
+- **Area heads** see only the areas in their `areasPermitidas` list. If no areas are assigned, they default to seeing all areas.
+- **Standard users** are shown machotes for their primary assigned area only.
+
+The nine available areas are:
+
+| Area name | Key |
+|---|---|
+| Recursos Humanos | RH |
+| Secretaría | SEC |
+| Tesorería | TES |
+| Obras Públicas | OP |
+| Desarrollo Social | DS |
+| Seguridad Pública | SP |
+| Catastro | CAT |
+| Servicios Públicos | SERV |
+| Transparencia e Informática | TEI |
+
+## Permissions matrix
+
+The table below summarizes which actions are available to each role.
+
+| Action | Administrator | Area head | Standard user |
+|---|:---:|:---:|:---:|
+| Log in and view dashboard | Yes | Yes | Yes |
+| Browse machotes for assigned area | Yes | Yes | Yes |
+| Generate a document from a machote | Yes | Yes | Yes |
+| Download document as PDF | Yes | Yes | Yes |
+| Print document directly | Yes | Yes | Yes |
+| View personal document history | Yes | Yes | Yes |
+| View area-wide document history | Yes | Yes (own areas) | No |
+| View all document history (all areas) | Yes | No | No |
+| Create new machotes | Yes | Yes (own areas) | No |
+| Edit existing machotes | Yes | Yes (own areas) | No |
+| Deactivate machotes | Yes | Yes (own areas) | No |
+| Create user accounts | Yes | No | No |
+| Activate / deactivate user accounts | Yes | No | No |
+| Reset another user's password | Yes | Yes (own area users) | No |
+| Assign roles to users | Yes | No | No |
+| Assign areas to users | Yes | No | No |
+| Upload user avatars | Yes | No | No |
+| Manage area configuration | Yes | No | No |
+| Upload or replace letterhead images | Yes | No | No |
+| View system-wide statistics | Yes | No | No |
+
+<Tip>
+  If you need access to an additional area or a capability your current role does not provide, contact your administrator at `transparencia-informatica@atotonilcodetula.gob.mx`.
+</Tip>

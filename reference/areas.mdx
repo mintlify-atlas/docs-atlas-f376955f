@@ -1,0 +1,91 @@
+---
+title: "Areas reference"
+description: "Complete reference for the nine municipal areas registered in MAPRISER ATOTO, including their IDs, names, and API keys."
+---
+
+MAPRISER ATOTO recognizes exactly nine administrative areas of the H. Ayuntamiento de Atotonilco de Tula. These are defined as fixed system constants in `src/app/constants/areas.ts` and are shared across authentication, template management, and document generation.
+
+## Area table
+
+| ID | Name | Key (`clave`) |
+|----|------|---------------|
+| `recursos-humanos` | Recursos Humanos | `RH` |
+| `secretaria` | Secretaría | `SEC` |
+| `tesoreria` | Tesorería | `TES` |
+| `obras-publicas` | Obras Públicas | `OP` |
+| `desarrollo-social` | Desarrollo Social | `DS` |
+| `seguridad-publica` | Seguridad Pública | `SP` |
+| `catastro` | Catastro | `CAT` |
+| `servicios-publicos` | Servicios Públicos | `SERV` |
+| `transparencia-informatica` | Transparencia e Informática | `TEI` |
+
+<Note>
+  Areas are fixed system constants. You cannot add, rename, or remove areas through the UI. Any changes to the area list require a code update to `src/app/constants/areas.ts`.
+</Note>
+
+## How the area ID is used
+
+When an administrator creates or edits a user account, the `areasPermitidas` field is set to an array of area IDs. For example, a user restricted to Recursos Humanos and Catastro would have:
+
+```json
+{
+  "areasPermitidas": ["recursos-humanos", "catastro"]
+}
+```
+
+The system uses these IDs at runtime to filter which machotes (templates) are visible to each user. Administrators (`ADMIN` role) always see all areas regardless of `areasPermitidas`.
+
+## How the area key (`clave`) is used
+
+When a machote is created or updated via the API, the system resolves the human-readable area name to its short key and sends it as the `areaKey` field. This key is stored on the machote document in MongoDB and used for filtering.
+
+The mapping applied in `src/app/services/api.ts` is:
+
+```typescript
+const AREA_KEY_MAP: Record<string, string> = {
+  'Recursos Humanos':       'RH',
+  'Secretaría':             'SEC',
+  'Tesorería':              'TES',
+  'Secretaría / Tesorería': 'SEC',
+  'Obras Públicas':         'OP',
+  'Desarrollo Social':      'DS',
+  'Seguridad Pública':      'SP',
+  'Catastro':               'CAT',
+  'Servicios Públicos':     'SERV',
+};
+```
+
+If an area name is not found in the map, the key falls back to `'GEN'` (generic).
+
+<Note>
+  **Transparencia e Informática** (`TEI`) is defined as a system area in `areas.ts` but is not present in `AREA_KEY_MAP`. Machotes created for this area will receive `areaKey: "GEN"` until the map is updated in source code.
+</Note>
+
+### Example: machote creation payload
+
+A machote created for Tesorería is sent to the machotes API with `areaKey: "TES"`:
+
+```json
+{
+  "title": "Constancia de No Adeudo",
+  "area": "Tesorería",
+  "areaKey": "TES",
+  "status": "active",
+  "content": { "html": "..." },
+  "variables": []
+}
+```
+
+## Role-based area access
+
+Access to areas depends on the user's role:
+
+| Role | Areas visible |
+|------|---------------|
+| `administrador` (ADMIN) | All nine areas |
+| `jefe_area` (JEFE_AREA) | Only the areas listed in `areasPermitidas` |
+| `usuario` (EMPLEADO) | The area assigned as primary (first entry in `areasPermitidas`); can generate documents in that area |
+
+<Info>
+  The `obtenerAreasDisponibles()` helper in `areas.ts` centralizes this logic. It accepts a role string and an `areasPermitidas` array and returns the filtered list of `Area` objects.
+</Info>

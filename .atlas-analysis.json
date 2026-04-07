@@ -1,0 +1,114 @@
+{
+  "projectType": "saas",
+  "projectName": "MAPRISER ATOTO",
+  "projectDescription": "A web-based document management system for the H. Ayuntamiento de Atotonilco de Tula that enables role-based generation of official administrative documents from reusable templates (machotes).",
+  "theme": "almond",
+  "primaryColor": "#621132",
+  "lightColor": "#FFD700",
+  "darkColor": "#3d0a1f",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "roles-and-permissions"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/document-templates",
+              "features/document-generation",
+              "features/document-history"
+            ]
+          },
+          {
+            "group": "Administration",
+            "pages": [
+              "admin/user-management",
+              "admin/area-management",
+              "admin/letterhead-management"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/areas",
+              "reference/variable-syntax",
+              "reference/faq"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Authentication",
+            "pages": [
+              "api/auth/login",
+              "api/auth/profile"
+            ]
+          },
+          {
+            "group": "Templates (Machotes)",
+            "pages": [
+              "api/machotes/list",
+              "api/machotes/create",
+              "api/machotes/update",
+              "api/machotes/deactivate"
+            ]
+          },
+          {
+            "group": "Documents",
+            "pages": [
+              "api/documents/create",
+              "api/documents/get",
+              "api/documents/update"
+            ]
+          },
+          {
+            "group": "Letterheads",
+            "pages": [
+              "api/letterheads/list",
+              "api/letterheads/upload"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Role-based access control with three user levels: administrator, area head (jefe_area), and standard user",
+    "Template (machote) management with dynamic field extraction using [VARIABLE] placeholder syntax",
+    "PDF document generation with institutional letterhead integration via Cloudinary",
+    "Document history tracking with audit trail (actor-based logging)",
+    "Multi-area support covering Recursos Humanos, Secretaría, Tesorería, Obras Públicas, and more",
+    "Automatic session management with 10-minute inactivity timeout",
+    "Privacy notice acceptance and mandatory first-login password change flow",
+    "Institutional branding with Morena party colors (Guinda #621132 and Gold #FFD700)"
+  ],
+  "publicApiSurface": [
+    "POST /machotes — Create a new document template",
+    "GET /machotes — List templates with optional search term",
+    "GET /machotes/mis-machotes — List templates created by the logged-in user",
+    "GET /machotes/:id — Get a specific template",
+    "PUT /machotes/:id — Update an existing template",
+    "POST /machotes/:id/deactivate — Deactivate a template",
+    "POST /machotes/:id/reactivate — Reactivate a template",
+    "POST /documentos — Create a new filled document",
+    "GET /documentos?machoteId=xxx — List documents for a template",
+    "GET /documentos/:id — Get a specific document",
+    "PUT /documentos/:id — Update a document",
+    "DELETE /documentos/:id — Delete a document",
+    "GET /membretadas/area/:areaId — Get letterheads for an area",
+    "POST /membretadas — Upload a new letterhead",
+    "GET /membretadas — List all letterheads",
+    "DELETE /membretadas/:id — Delete a letterhead"
+  ]
+}

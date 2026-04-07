@@ -1,0 +1,86 @@
+---
+title: "Document history"
+description: "A full audit trail of every document generated in MAPRISER ATOTO, with the filled field values, creator information, and current status."
+---
+
+Every time a user fills in a template and saves the result, a document record is created and stored. The history surfaces these records so you can track what was generated, who generated it, and whether it was finalized.
+
+## What the history tracks
+
+Each document record (`DocumentoAPI`) captures the following:
+
+| Field | Description |
+|---|---|
+| `_id` | Unique document identifier |
+| `machoteId` | Reference to the template that was used |
+| `campos` | Map of `{ variableName: filledValue }` for every field in the template |
+| `status` | `borrador` (draft) or `final` |
+| `createdBy` | Audit actor: `userId`, `name`, `email`, `role` of the user who created the document |
+| `updatedBy` | Audit actor for the last update (optional) |
+| `createdAt` | ISO timestamp of creation |
+| `updatedAt` | ISO timestamp of last modification |
+
+The `createdBy` field is populated automatically from the authenticated user's session data at the moment the document is saved. No manual attribution is required.
+
+## Viewing the history
+
+### System-wide history (`HistorialDocumentos`)
+
+The **Historial de Documentos Generados** screen shows all document records accessible to the current user, sorted by creation date descending (most recent first). Each row displays:
+
+- The name of the template that was used (`nombreMachote`)
+- The department the document belongs to (`area`)
+- The name of the user who generated it
+- The creation date and time
+
+<Note>
+  Administrators see every document generated across all areas and departments. Area users see only documents that belong to their own area or that they personally generated.
+</Note>
+
+### Per-template history (`HistorialMachote`)
+
+When you open a specific template, you can view its history before proceeding to generation. The **Historial del Machote** screen (`HistorialMachote.tsx`) loads all documents generated from that template via `GET /documentos?machoteId=<id>` and presents them in a table with:
+
+- Document status (`borrador` or `final`)
+- Creator name
+- Creation timestamp
+
+Draft documents show an **Editar** button that opens the generation screen with the previously filled field values pre-loaded (`camposIniciales`). Final documents show "Finalizado" and cannot be edited.
+
+<Tip>
+  Use the per-template history to find a previously generated document for re-printing. Open the template's history, locate the document row, click **Editar** to re-open it with the original field values intact, and then use the **Imprimir** button to send it to the printer.
+</Tip>
+
+## Document statuses in history
+
+| Status | Badge color | Meaning |
+|---|---|---|
+| `borrador` | Gray (secondary) | Draft — fields can still be edited |
+| `final` | Green | Finalized — locked, cannot be modified |
+
+You can promote a `borrador` to `final` at any point from the generation screen by clicking **Marcar como Final**. This updates the record via `PUT /documentos/:id` with `{ status: "final" }` and records the `updatedBy` actor.
+
+## Filtering by template
+
+The per-template history view (`HistorialMachote`) already filters results to a single template. In the system-wide view (`HistorialDocumentos`), documents are fetched from the `documentosGenerados` context, which is pre-filtered on the server based on the user's role and area access.
+
+## Audit trail details
+
+The `createdBy` actor object is constructed from the user's active session at save time:
+
+```json
+{
+  "userId": "64f3a1c2e4b0a123456789ab",
+  "name": "María García López",
+  "email": "m.garcia@atotonilco.gob.mx",
+  "role": "EMPLEADO"
+}
+```
+
+Role values correspond to the API role (`rolApi`): `ADMIN`, `JEFE_AREA`, or `EMPLEADO`. If a document is later updated (for example, field values corrected while still in `borrador` status), the `updatedBy` field captures the editor's actor data separately from the original creator.
+
+This design means you can always answer:
+- **Who originally created this document?** — `createdBy.name`
+- **Who last modified it?** — `updatedBy.name`
+- **What values did they fill in?** — `campos`
+- **Was it finalized?** — `status === "final"`

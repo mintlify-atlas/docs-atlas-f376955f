@@ -1,0 +1,125 @@
+---
+title: "Document templates"
+description: "Reusable HTML-based templates with dynamic field placeholders, used to standardize official documents across all municipal departments."
+---
+
+Machotes are the foundation of MAPRISER ATOTO's document workflow. Each machote is a reusable template that defines the structure and content of an official municipal document — complete with dynamic placeholders that turn into form fields when a user generates a document.
+
+<CardGroup cols={2}>
+  <Card title="Dynamic placeholders" icon="brackets-curly">
+    Write `[FieldName]` anywhere in the template content. The system detects every placeholder automatically and presents them as input fields during generation.
+  </Card>
+  <Card title="Institutional letterhead" icon="building-columns">
+    Each template is linked to an area-specific letterhead image, applied as a background layer on every page of the rendered document.
+  </Card>
+  <Card title="Area scoping" icon="sitemap">
+    Templates belong to a single municipal department (`area`) and are only visible to users with access to that area. Administrators see all templates system-wide.
+  </Card>
+  <Card title="Lifecycle management" icon="arrow-right-arrow-left">
+    Templates move through a clear lifecycle: `draft` → `active` → `inactive`. Inactive templates can always be reactivated.
+  </Card>
+</CardGroup>
+
+## Template fields
+
+Every template stored in the system has the following fields:
+
+| Field | Type | Description |
+|---|---|---|
+| `title` | string | Display name of the template |
+| `area` | string | Department name (e.g., `Recursos Humanos`, `Tesorería`) |
+| `areaKey` | string | Short department code (e.g., `RH`, `TES`, `OP`) |
+| `status` | `active` \| `draft` \| `inactive` | Current lifecycle state |
+| `content.html` | string | Raw HTML content of the template body |
+| `content.text` | string | Plain-text version, used in the raw editor |
+| `variables` | array | Auto-extracted list of `[VARIABLE]` placeholders |
+| `letterheadUrl` | string | URL of the area's official letterhead image |
+
+## Variable syntax
+
+Dynamic fields use **square bracket notation**: `[VariableName]`. Anything written between `[` and `]` becomes a placeholder that the system extracts automatically when the template is saved.
+
+<CodeGroup>
+```text Employee record
+Presente:
+
+Por medio del presente se hace constar que [NombreEmpleado]
+desempeña el puesto de [PuestoTrabajo] en esta dependencia,
+con fecha de inicio [FechaInicio].
+
+A T E N T A M E N T E
+```
+
+```text Official notice (oficio)
+OFICIO NÚM. [NumeroOficio]
+
+Atotonilco de Tula, Hgo., a [FechaDocumento]
+
+[DestinatarioNombre]
+[CargoDestinatario]
+PRESENTE
+
+Me permito informarle que [AsuntoOficio].
+```
+
+```text Certificate
+Por medio de la presente se otorga la presente
+CONSTANCIA a [NombreEmpleado], con CURP [CURP],
+por haber cumplido con [DescripcionLogro]
+durante el periodo del [FechaInicio] al [FechaFin].
+```
+</CodeGroup>
+
+### How variables are extracted
+
+Variables are detected with the regular expression `/\[\s*([^\]]+?)\s*\]/g`. The regex trims any surrounding whitespace inside the brackets and deduplicates matches, so `[NombreEmpleado]` and `[ NombreEmpleado ]` are treated as the same variable (`NombreEmpleado`).
+
+The extracted list is stored in the template's `variables` array, where each entry carries a `key`, a `label`, a `type` (always `string`), and `required: true`.
+
+Variable names using underscores (`[nombre_empleado]`) are automatically formatted for display by capitalizing each word: `Nombre Empleado`.
+
+## Template lifecycle
+
+Templates follow a three-state lifecycle. Only **active** templates appear in the machote picker during document generation.
+
+```
+draft → active → inactive
+                    ↓
+                 active  (reactivate)
+```
+
+| Status | Meaning | Available for generation |
+|---|---|---|
+| `draft` | Being authored, not published | No |
+| `active` | Published and ready to use | Yes |
+| `inactive` | Deactivated ("dado de baja") — preserved for history | No |
+
+Deactivation is performed via `POST /machotes/:id/deactivate` and records a `fechaBaja` timestamp. Reactivation uses `POST /machotes/:id/reactivate` and records a `fechaAlta` timestamp. Neither operation deletes the template or its associated document history.
+
+## Editors
+
+MAPRISER ATOTO provides two ways to edit a template's content:
+
+### Raw text editor (`EditorMachote`)
+
+The raw editor (`EditorMachote.tsx`) is a monospace textarea that accepts plain text. It is the primary editing surface for authoring template content. As you type, the **Variables Detected** panel on the right side of the screen updates in real time, listing every `[VARIABLE]` placeholder found in the current content. You can click the copy button next to any variable to copy its placeholder syntax to the clipboard.
+
+When you save, the editor sends `content.text` to the API. The server extracts and stores the `variables` array automatically.
+
+### Visual (WYSIWYG) editor (`EditorDocumentoVisual`)
+
+The visual editor (`EditorDocumentoVisual.tsx`) renders the document on a letter-sized canvas (794 × 1123 px) with the institutional letterhead applied as a background layer. You can apply rich-text formatting using the toolbar (bold, italic, underline, alignment, font size) and the content is stored as `content.html`.
+
+The visual editor also supports AI-assisted generation: you can describe the document you need in plain language and the system drafts it for you using the Groq microservice. Placeholders in the generated content are automatically normalized from `{{Variable}}` format to the canonical `[Variable]` square-bracket syntax.
+
+Both editors support undo (`Ctrl+Z`) and redo (`Ctrl+Y` / `Ctrl+Shift+Z`).
+
+<Note>
+  Only users with the `administrador` or `jefe_area` role can create or edit templates. Regular `empleado` users can generate documents from existing templates but cannot modify the templates themselves.
+</Note>
+
+## Letterhead images
+
+Each template stores a `letterheadUrl` pointing to the official letterhead image for its department. When rendering a document, the letterhead is applied as an absolute-positioned background layer that covers the full 794 × 1123 px page. Text content is placed in a safe content area with fixed margins (top: 160 px, bottom: 100 px, left/right: 72 px) to avoid overlapping the letterhead's header and footer.
+
+Administrators and area heads (`ADMIN`, `JEFE_AREA`) can upload new letterhead images for their area in JPG, PNG, WEBP, or PDF format (maximum 10 MB). Uploaded images are stored in Cloudinary and referenced by the `letterheadRef` field.

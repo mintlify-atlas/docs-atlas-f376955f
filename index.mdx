@@ -1,97 +1,61 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "MAPRISER ATOTO"
+description: "Document management system for the H. Ayuntamiento de Atotonilco de Tula — generate official administrative documents from reusable templates."
 ---
 
-## Setting up
+Welcome to MAPRISER ATOTO, the official document generation platform for the H. Ayuntamiento de Atotonilco de Tula, Hidalgo. Generate standardized official documents from institutional templates (machotes), manage letterheads, and maintain a full audit trail — all in one place.
 
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Log in and generate your first official document in minutes.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Roles and Permissions" icon="shield-halved" href="/roles-and-permissions">
+    Understand the three user roles and what each can do.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Document Templates" icon="file-lines" href="/features/document-templates">
+    Learn how to create and manage machotes with dynamic fields.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="API Reference" icon="code" href="/api/auth/login">
+    Explore the REST API for machotes, documents, and letterheads.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## How it works
 
-Everything you need to create world-class documentation.
+<Steps>
+  <Step title="Sign in">
+    Log in with your institutional email and password. On first login you will be prompted to accept the privacy notice and set a new password.
+  </Step>
+  <Step title="Choose a template">
+    From the dashboard, browse the machotes available for your area. Each template is pre-configured with the fields you need to fill in.
+  </Step>
+  <Step title="Fill in the fields">
+    Complete the dynamic fields in the form. Required fields are marked — the system extracts these automatically from the `[VARIABLE]` placeholders in the template.
+  </Step>
+  <Step title="Preview, download, or print">
+    Review the rendered document with the institutional letterhead applied. Download as PDF or send directly to the printer.
+  </Step>
+</Steps>
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+## Key features
 
-## Need inspiration?
-
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<CardGroup cols={2}>
+  <Card title="Role-based access" icon="users">
+    Three roles — administrator, area head, and standard user — each with tailored permissions.
+  </Card>
+  <Card title="Dynamic templates" icon="wand-magic-sparkles">
+    Create machotes with `[VARIABLE]` placeholders that become form fields at generation time.
+  </Card>
+  <Card title="PDF generation" icon="file-pdf">
+    Documents are rendered with the area's official letterhead and exported as PDF.
+  </Card>
+  <Card title="Document history" icon="clock-rotate-left">
+    Every generated document is logged with a full audit trail including the author and timestamp.
+  </Card>
+  <Card title="Multi-area support" icon="building-columns">
+    Covers Recursos Humanos, Secretaría, Tesorería, Obras Públicas, and six other municipal departments.
+  </Card>
+  <Card title="Institutional branding" icon="landmark">
+    Consistent guinda and gold color scheme aligned with the H. Ayuntamiento identity.
+  </Card>
+</CardGroup>

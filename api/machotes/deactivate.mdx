@@ -1,0 +1,197 @@
+---
+title: "Deactivate and reactivate machotes"
+description: "Manage the active/inactive lifecycle of a machote. Deactivated templates are preserved in full but hidden from users. Reactivation restores them to active status."
+---
+
+## Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/machotes/:id/deactivate` | Deactivate an active machote (sets `status: "inactive"` and records `fechaBaja`). |
+| `POST` | `/machotes/:id/reactivate` | Reactivate an inactive machote (sets `status: "active"` and records `fechaAlta`). |
+
+**Base URL:** `https://machotes-guardado.onrender.com`
+
+Both endpoints require a valid JWT in the `Authorization` header.
+
+---
+
+## Lifecycle
+
+Machotes follow a two-state active/inactive lifecycle:
+
+```
+active ──── deactivate ───→ inactive
+inactive ── reactivate ───→ active
+```
+
+**Deactivation** does not delete the machote or its content. The template and all its associated documents are preserved in the database. The machote is simply hidden from the standard list (`GET /machotes`) unless `includeInactive=true` is passed. The `fechaBaja` field is set to the timestamp of deactivation.
+
+**Reactivation** restores the machote to `status: "active"`. It becomes visible again in the default list. The `fechaAlta` field is set to the timestamp of reactivation.
+
+<Info>
+  Use deactivation instead of deletion when a template is no longer in use but must be retained for audit or historical reference. Documents generated from a deactivated machote remain fully accessible.
+</Info>
+
+---
+
+## Path parameters
+
+<ParamField path="id" type="string" required>
+  The `_id` of the machote to deactivate or reactivate.
+</ParamField>
+
+---
+
+## Request body
+
+Both endpoints accept an optional request body with audit information.
+
+<ParamField body="actor" type="object">
+  Optional. Audit record of the user performing the action. The client populates this automatically from `localStorage`.
+
+  <Expandable title="actor fields">
+    <ParamField body="actor.userId" type="string">
+      The acting user's `id`.
+    </ParamField>
+
+    <ParamField body="actor.name" type="string">
+      The acting user's full name.
+    </ParamField>
+
+    <ParamField body="actor.email" type="string">
+      The acting user's email address.
+    </ParamField>
+
+    <ParamField body="actor.role" type="string">
+      The acting user's role (`ADMIN`, `JEFE_AREA`, `EMPLEADO`, or `ASISTENTE`).
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+---
+
+## Deactivate a machote
+
+`POST /machotes/:id/deactivate`
+
+Transitions the machote from `active` to `inactive`. Sets the `fechaBaja` field to the current server timestamp.
+
+### Example
+
+```bash
+curl -X POST https://machotes-guardado.onrender.com/machotes/664a1f2e8c3b2a1d4e5f6789/deactivate \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -d '{
+    "actor": {
+      "userId": "64f2a1b3c9e4f5d6e7a8b9c0",
+      "name": "Martín Juárez Hernández",
+      "email": "juarez.m@atotonilco.gob.mx",
+      "role": "JEFE_AREA"
+    }
+  }'
+```
+
+### Response
+
+```json
+{
+  "_id": "664a1f2e8c3b2a1d4e5f6789",
+  "title": "Constancia de Empleo",
+  "areaKey": "RH",
+  "area": "Recursos Humanos",
+  "status": "inactive",
+  "content": {
+    "html": "<p>Por medio del presente se hace constar que <strong>[NombreEmpleado]</strong>...</p>",
+    "json": null
+  },
+  "variables": [
+    { "key": "NombreEmpleado", "label": "NombreEmpleado", "type": "string", "required": true }
+  ],
+  "letterheadUrl": "https://res.cloudinary.com/demo/image/upload/v1/membretadas/rh_hoja.png",
+  "createdAt": "2026-04-07T08:00:00.000Z",
+  "updatedAt": "2026-04-07T11:00:00.000Z",
+  "fechaBaja": "2026-04-07T11:00:00.000Z"
+}
+```
+
+Note that `status` is now `"inactive"` and `fechaBaja` is set. The `fechaAlta` field is absent (it is only present after a reactivation).
+
+---
+
+## Reactivate a machote
+
+`POST /machotes/:id/reactivate`
+
+Transitions the machote from `inactive` back to `active`. Sets the `fechaAlta` field to the current server timestamp.
+
+### Example
+
+```bash
+curl -X POST https://machotes-guardado.onrender.com/machotes/664a1f2e8c3b2a1d4e5f6789/reactivate \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -d '{
+    "actor": {
+      "userId": "64f2a1b3c9e4f5d6e7a8b9c0",
+      "name": "Martín Juárez Hernández",
+      "email": "juarez.m@atotonilco.gob.mx",
+      "role": "JEFE_AREA"
+    }
+  }'
+```
+
+### Response
+
+```json
+{
+  "_id": "664a1f2e8c3b2a1d4e5f6789",
+  "title": "Constancia de Empleo",
+  "areaKey": "RH",
+  "area": "Recursos Humanos",
+  "status": "active",
+  "content": {
+    "html": "<p>Por medio del presente se hace constar que <strong>[NombreEmpleado]</strong>...</p>",
+    "json": null
+  },
+  "variables": [
+    { "key": "NombreEmpleado", "label": "NombreEmpleado", "type": "string", "required": true }
+  ],
+  "letterheadUrl": "https://res.cloudinary.com/demo/image/upload/v1/membretadas/rh_hoja.png",
+  "createdAt": "2026-04-07T08:00:00.000Z",
+  "updatedAt": "2026-04-07T12:30:00.000Z",
+  "fechaBaja": "2026-04-07T11:00:00.000Z",
+  "fechaAlta": "2026-04-07T12:30:00.000Z"
+}
+```
+
+After reactivation, `status` returns to `"active"`. Both `fechaBaja` (when it was deactivated) and `fechaAlta` (when it was reactivated) are retained in the document for audit history.
+
+---
+
+## Response fields
+
+Both endpoints return the full updated `ApiMachote` object. The fields specific to this lifecycle are:
+
+<ResponseField name="status" type="string">
+  `"inactive"` after deactivation, `"active"` after reactivation.
+</ResponseField>
+
+<ResponseField name="fechaBaja" type="string">
+  ISO 8601 timestamp set at deactivation time. Present once a machote has been deactivated at least once.
+</ResponseField>
+
+<ResponseField name="fechaAlta" type="string">
+  ISO 8601 timestamp set at reactivation time. Present once a machote has been reactivated after a deactivation.
+</ResponseField>
+
+---
+
+## Error responses
+
+| HTTP status | Cause |
+|---|---|
+| `401` | Missing or expired token. |
+| `404` | No machote found with the given `:id`. |
+| `400` | State conflict — for example, attempting to deactivate an already-inactive machote. |

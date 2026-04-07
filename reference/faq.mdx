@@ -1,0 +1,100 @@
+---
+title: "FAQ"
+description: "Answers to common questions about using MAPRISER ATOTO, the document management system of the H. Ayuntamiento de Atotonilco de Tula."
+---
+
+<AccordionGroup>
+
+  <Accordion title="Why was I logged out automatically?">
+    Your session expires after **10 minutes of inactivity**. The system monitors mouse movement, clicks, keyboard input, scrolling, and touch events. If none of these occur for 9 minutes, you will see a warning notification:
+
+    > "Tu sesión cerrará en 1 minuto por inactividad"
+
+    If you remain inactive for the full 10 minutes, you are logged out automatically and redirected to the login screen. Simply log in again to continue working.
+
+    To avoid unexpected logouts, keep interacting with the application normally while you are filling out a document.
+  </Accordion>
+
+  <Accordion title="I can't find my area's machotes — what should I do?">
+    This usually means your account does not have the correct area assigned. Check the following:
+
+    1. Confirm with your administrator that your account has been assigned the correct area. All users can browse machotes for their assigned area — but if `areasPermitidas` is empty or missing, no machotes will appear.
+    2. Ask your administrator to verify that your `areasPermitidas` list includes the correct area ID (for example, `recursos-humanos` or `tesoreria`).
+    3. If your `areasPermitidas` is empty and your role is `jefe_area`, contact your system administrator to update your account.
+
+    Administrators always see all nine areas regardless of their `areasPermitidas` setting.
+  </Accordion>
+
+  <Accordion title="Can I edit a document after it's been generated?">
+    It depends on the document's status:
+
+    - **`borrador` (draft):** You can update the field values using the edit action on the document. The document remains in your history and can be finalized later.
+    - **`final`:** The document is considered complete. To make changes, contact your area head (`jefe_area`), who can coordinate with the administrator if needed.
+
+    Changing a document's status from `borrador` to `final` is intentionally irreversible through the standard UI to preserve document integrity.
+  </Accordion>
+
+  <Accordion title="What file formats are supported for letterheads?">
+    The system accepts the following formats for hojas membretadas (letterheads):
+
+    | Format | Extension | Notes |
+    |--------|-----------|-------|
+    | PNG | `.png` | Recommended — clearest results in generated documents |
+    | JPG / JPEG | `.jpg`, `.jpeg` | Recommended — good quality, smaller file size |
+    | WebP | `.webp` | Supported |
+    | PDF | `.pdf` | Supported for upload; a JPEG preview is generated automatically for display |
+
+    **PNG or JPG provide the clearest results** in the final generated documents. If you upload a PDF, the system stores the original for download but renders a JPEG preview for use inside document templates.
+  </Accordion>
+
+  <Accordion title="My machote variables are not appearing as form fields — why?">
+    Variables must be written using **square bracket** syntax: `[VariableName]`
+
+    Common mistakes and their fixes:
+
+    | Incorrect | Correct |
+    |-----------|---------|
+    | `{NombreEmpleado}` | `[NombreEmpleado]` |
+    | `(NombreEmpleado)` | `[NombreEmpleado]` |
+    | `<NombreEmpleado>` | `[NombreEmpleado]` |
+    | `NombreEmpleado` (no brackets) | `[NombreEmpleado]` |
+
+    **Curly brace syntax `{{Variable}}` is supported** and is automatically converted to `[Variable]` when the template is saved. However, single curly braces `{variable}` are only converted if the name starts with an uppercase letter and the braces are not inside a CSS rule or JSON value.
+
+    After correcting the syntax, save the machote. The system re-extracts variables on every save, so the form fields will update immediately.
+  </Accordion>
+
+  <Accordion title="Can I deactivate a template without deleting it?">
+    Yes. Use the **deactivate** action on the machote (available to `jefe_area` and `administrador` accounts). This sets the machote's status to `inactive` and records a `fechaBaja` timestamp.
+
+    What deactivation does:
+
+    - The machote no longer appears in the list for users generating documents.
+    - All previously generated documents remain in the history and are unaffected.
+    - The template content, variables, and full audit history are preserved.
+
+    A deactivated machote can be **reactivated** at any time using the reactivate action, which sets the status back to `active` and records a `fechaAlta` timestamp. No data is lost during deactivation or reactivation.
+  </Accordion>
+
+  <Accordion title="How do I reset my password?">
+    There are two scenarios:
+
+    **First login:** When your account is created, you are assigned an initial password. On your first login you will be prompted to:
+    1. Accept the **aviso de privacidad** (privacy notice).
+    2. Set a new password to replace the initial one.
+
+    You cannot access the application until both steps are completed.
+
+    **Subsequent resets:** There is no self-service password reset link. Contact your system administrator to reset your password. The administrator can issue a new initial password, which triggers the first-login flow again on your next session.
+  </Accordion>
+
+  <Accordion title="What happens to documents if a machote is deactivated?">
+    Deactivating a machote only affects **future** document generation:
+
+    - **Existing documents** in the history are fully preserved. You can still view, print, and download them.
+    - **New documents** cannot be generated from an inactive machote. The machote will not appear in the selection list.
+
+    If you need to generate a new document based on an inactive machote, an administrator or area head must reactivate it first, generate the document, and then deactivate it again if required.
+  </Accordion>
+
+</AccordionGroup>

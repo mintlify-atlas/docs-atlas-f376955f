@@ -1,0 +1,166 @@
+---
+title: "Update a machote"
+description: "Replace the content, title, area, status, or letterhead of an existing machote. All fields in the request body are applied to the stored document."
+---
+
+## Endpoint
+
+```
+PUT https://machotes-guardado.onrender.com/machotes/:id
+```
+
+Requires a valid JWT in the `Authorization` header.
+
+---
+
+## Path parameters
+
+<ParamField path="id" type="string" required>
+  The `_id` of the machote to update. Obtained from the `_id` field in the list or create responses.
+</ParamField>
+
+---
+
+## Request body
+
+All fields below replace the current stored value for that field. Send the complete desired state — this is a full replacement, not a partial patch.
+
+<ParamField body="title" type="string" required>
+  Updated template name.
+</ParamField>
+
+<ParamField body="area" type="string" required>
+  Full municipal area name. Use a canonical value from the area mapping to ensure `areaKey` resolves correctly.
+</ParamField>
+
+<ParamField body="areaKey" type="string" required>
+  Short area code corresponding to the `area` value. See the [area-to-areaKey mapping](/api/machotes/create#how-areakey-is-derived).
+</ParamField>
+
+<ParamField body="status" type="string" required>
+  Lifecycle status. One of `"active"`, `"draft"`, or `"inactive"`.
+
+  <Note>
+    To transition between `active` and `inactive` as part of the formal deactivation/reactivation flow (which sets `fechaBaja` and `fechaAlta` timestamps), use the dedicated [deactivate and reactivate endpoints](/api/machotes/deactivate) instead of changing `status` directly here.
+  </Note>
+</ParamField>
+
+<ParamField body="content" type="object" required>
+  Replacement content for the template.
+
+  <Expandable title="content fields">
+    <ParamField body="content.html" type="string">
+      Updated HTML body of the template. Dynamic fields must use `[FieldName]` bracket syntax.
+    </ParamField>
+
+    <ParamField body="content.text" type="string">
+      Optional plain-text version of the content.
+    </ParamField>
+
+    <ParamField body="content.json" type="object | null">
+      Optional structured representation of the content (editor-native format).
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="letterheadUrl" type="string" required>
+  URL of the letterhead image to associate with this template.
+</ParamField>
+
+<ParamField body="actor" type="object">
+  Optional audit information about the user performing the update. The client populates this automatically from `localStorage`.
+
+  <Expandable title="actor fields">
+    <ParamField body="actor.userId" type="string">
+      The updating user's `id`.
+    </ParamField>
+
+    <ParamField body="actor.name" type="string">
+      The updating user's full name.
+    </ParamField>
+
+    <ParamField body="actor.email" type="string">
+      The updating user's email address.
+    </ParamField>
+
+    <ParamField body="actor.role" type="string">
+      The updating user's role.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+---
+
+## Example
+
+```bash
+curl -X PUT https://machotes-guardado.onrender.com/machotes/664a1f2e8c3b2a1d4e5f6789 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -d '{
+    "title": "Constancia de Empleo (Actualizada)",
+    "area": "Recursos Humanos",
+    "areaKey": "RH",
+    "status": "active",
+    "content": {
+      "html": "<p>Por medio del presente se hace constar que <strong>[NombreEmpleado]</strong>, con puesto de <strong>[Puesto]</strong>, labora en este H. Ayuntamiento a partir del [FechaIngreso].</p><p>Se expide a petición del interesado en Atotonilco de Tula, Hidalgo, el [FechaExpedicion].</p>",
+      "json": null
+    },
+    "letterheadUrl": "https://res.cloudinary.com/demo/image/upload/v1/membretadas/rh_hoja_v2.png",
+    "actor": {
+      "userId": "64f2a1b3c9e4f5d6e7a8b9c0",
+      "name": "Martín Juárez Hernández",
+      "email": "juarez.m@atotonilco.gob.mx",
+      "role": "JEFE_AREA"
+    }
+  }'
+```
+
+---
+
+## Response
+
+Returns the updated machote object directly (not wrapped in a `data` envelope like the create endpoint).
+
+```json
+{
+  "_id": "664a1f2e8c3b2a1d4e5f6789",
+  "title": "Constancia de Empleo (Actualizada)",
+  "areaKey": "RH",
+  "area": "Recursos Humanos",
+  "status": "active",
+  "content": {
+    "html": "<p>Por medio del presente se hace constar que <strong>[NombreEmpleado]</strong>...</p>",
+    "json": null
+  },
+  "variables": [
+    { "key": "NombreEmpleado", "label": "NombreEmpleado", "type": "string", "required": true },
+    { "key": "Puesto", "label": "Puesto", "type": "string", "required": true },
+    { "key": "FechaIngreso", "label": "FechaIngreso", "type": "string", "required": true },
+    { "key": "FechaExpedicion", "label": "FechaExpedicion", "type": "string", "required": true }
+  ],
+  "letterheadUrl": "https://res.cloudinary.com/demo/image/upload/v1/membretadas/rh_hoja_v2.png",
+  "createdAt": "2026-04-07T08:00:00.000Z",
+  "updatedAt": "2026-04-07T09:15:00.000Z"
+}
+```
+
+<ResponseField name="_id" type="string">
+  The machote's MongoDB ObjectId. Unchanged by the update.
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp updated to the time of this request.
+</ResponseField>
+
+All other fields reflect the values sent in the request body. See the [ApiMachote field reference](/api/machotes/list#response) for full field descriptions.
+
+---
+
+## Error responses
+
+| HTTP status | Cause |
+|---|---|
+| `401` | Missing or expired token. |
+| `404` | No machote found with the given `:id`. |
+| `400` | Validation error — required field missing or malformed. |

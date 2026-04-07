@@ -1,0 +1,190 @@
+---
+title: "Get documents"
+description: "Retrieve documents by machote ID or fetch a single document by its own ID."
+---
+
+## Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/documentos?machoteId=:machoteId` | List all documents generated from a specific machote. |
+| `GET` | `/documentos/:id` | Fetch a single document by its document ID. |
+
+Both endpoints require a valid JWT token in the `Authorization` header.
+
+<Warning>
+  This API is hosted on Render.com's free tier. If the service has been idle, the first request may take up to **30 seconds** while the server cold-starts. The client automatically retries once after 1 second on timeout — plan for this latency in your UI.
+</Warning>
+
+---
+
+## List documents by machote
+
+```
+GET https://machotes-guardado.onrender.com/documentos?machoteId={machoteId}
+```
+
+Returns all documents that were generated from the specified machote. This endpoint is used to show the history of filled documents for a given template.
+
+### Query parameters
+
+<ParamField query="machoteId" type="string" required>
+  The `_id` of the machote whose documents you want to retrieve.
+</ParamField>
+
+### Example
+
+```bash
+curl "https://machotes-guardado.onrender.com/documentos?machoteId=664a1f2e3b8c9d0e1f2a3b4c" \
+  -H "Authorization: Bearer <token>"
+```
+
+### Response
+
+The server may return documents in one of three formats depending on backend version. The client normalizes all three into a flat array:
+
+- A raw JSON array: `[{ "_id": "...", ... }, ...]`
+- A paginated object: `{ "items": [...], "pagination": { ... } }`
+- A legacy wrapper: `{ "documentos": [...] }`
+
+```json
+[
+  {
+    "_id": "6650c3d4e5f6a7b8c9d0e1f2",
+    "machoteId": "664a1f2e3b8c9d0e1f2a3b4c",
+    "campos": {
+      "NombreEmpleado": "Juan García López",
+      "FechaInicio": "01/01/2025",
+      "PuestoTrabajo": "Auxiliar Administrativo"
+    },
+    "status": "final",
+    "createdBy": {
+      "userId": "64f2a1b3c9e4f5d6e7a8b9c0",
+      "name": "Martín Juárez Hernández",
+      "email": "juarez.m@atotonilco.gob.mx",
+      "role": "JEFE_AREA"
+    },
+    "updatedBy": {
+      "userId": "64f2a1b3c9e4f5d6e7a8b9c0",
+      "name": "Martín Juárez Hernández",
+      "email": "juarez.m@atotonilco.gob.mx",
+      "role": "JEFE_AREA"
+    },
+    "createdAt": "2026-04-07T08:15:00.000Z",
+    "updatedAt": "2026-04-07T09:00:00.000Z"
+  }
+]
+```
+
+<ResponseField name="[]" type="DocumentoAPI[]">
+  Array of document objects. Empty array if no documents exist for the given `machoteId`.
+
+  <Expandable title="DocumentoAPI fields">
+    <ResponseField name="_id" type="string">
+      MongoDB document ID.
+    </ResponseField>
+
+    <ResponseField name="machoteId" type="string">
+      ID of the parent machote.
+    </ResponseField>
+
+    <ResponseField name="campos" type="object">
+      Key-value map of the field values that were filled in when the document was created.
+    </ResponseField>
+
+    <ResponseField name="status" type="string">
+      `borrador` or `final`.
+    </ResponseField>
+
+    <ResponseField name="createdBy" type="object">
+      Audit record of the user who created the document.
+
+      <Expandable title="createdBy fields">
+        <ResponseField name="userId" type="string">MongoDB ID or email of the creator.</ResponseField>
+        <ResponseField name="name" type="string">Full name.</ResponseField>
+        <ResponseField name="email" type="string">Email address.</ResponseField>
+        <ResponseField name="role" type="string">Role at time of creation.</ResponseField>
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="updatedBy" type="object | undefined">
+      Populated after the document has been updated at least once. Same shape as `createdBy`.
+    </ResponseField>
+
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 creation timestamp.
+    </ResponseField>
+
+    <ResponseField name="updatedAt" type="string">
+      ISO 8601 last-updated timestamp.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<Note>
+  MongoDB Extended JSON (`{ "$oid": "..." }` and `{ "$date": "..." }`) is automatically normalized to plain strings before being returned to the client.
+</Note>
+
+---
+
+## Get a single document
+
+```
+GET https://machotes-guardado.onrender.com/documentos/{id}
+```
+
+Returns a single document object identified by its `_id`.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The `_id` of the document to retrieve.
+</ParamField>
+
+### Example
+
+```bash
+curl "https://machotes-guardado.onrender.com/documentos/6650c3d4e5f6a7b8c9d0e1f2" \
+  -H "Authorization: Bearer <token>"
+```
+
+### Response
+
+Returns a single `DocumentoAPI` object directly (not wrapped in an array or envelope).
+
+```json
+{
+  "_id": "6650c3d4e5f6a7b8c9d0e1f2",
+  "machoteId": "664a1f2e3b8c9d0e1f2a3b4c",
+  "campos": {
+    "NombreEmpleado": "Juan García López",
+    "FechaInicio": "01/01/2025",
+    "PuestoTrabajo": "Auxiliar Administrativo"
+  },
+  "status": "final",
+  "createdBy": {
+    "userId": "64f2a1b3c9e4f5d6e7a8b9c0",
+    "name": "Martín Juárez Hernández",
+    "email": "juarez.m@atotonilco.gob.mx",
+    "role": "JEFE_AREA"
+  },
+  "updatedBy": {
+    "userId": "64f2a1b3c9e4f5d6e7a8b9c0",
+    "name": "Martín Juárez Hernández",
+    "email": "juarez.m@atotonilco.gob.mx",
+    "role": "JEFE_AREA"
+  },
+  "createdAt": "2026-04-07T08:15:00.000Z",
+  "updatedAt": "2026-04-07T09:00:00.000Z"
+}
+```
+
+---
+
+## Error responses
+
+| HTTP status | Cause |
+|---|---|
+| `401` | Missing or invalid `Authorization` header. |
+| `404` | No document found with the given `id`. |
+| `500` | Internal server error. Retry after a few seconds if the service just cold-started. |

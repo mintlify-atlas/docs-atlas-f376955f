@@ -1,0 +1,170 @@
+---
+title: "User management"
+description: "Create, view, and manage user accounts in MAPRISER ATOTO. Restricted to administrators."
+---
+
+<Warning>
+  Only users with the **Administrador** role can access user management. Area heads (jefe de área) can view and manage users within their own area, but cannot create accounts or activate/deactivate users.
+</Warning>
+
+## Overview
+
+The user management section (**Gestión de Usuarios**) is accessible from the sidebar under **Administración**. It lists every account registered in the system and lets you create new users, view full user details, toggle account activation, and reset passwords.
+
+---
+
+## Roles
+
+MAPRISER ATOTO defines three roles. The API uses uppercase identifiers; the application maps them to internal role names.
+
+| Display name | API role | Internal role | Description |
+|---|---|---|---|
+| Administrador General | `ADMIN` | `administrador` | Full access to all areas, users, machotes, and letterheads |
+| Director | `JEFE_AREA` | `jefe_area` | Manages machotes and users within their permitted areas |
+| Auxiliar Administrativo | `EMPLEADO` / `ASISTENTE` | `usuario` | Can view and generate documents within their assigned area |
+
+---
+
+## User fields
+
+Each user account contains the following fields.
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Unique identifier assigned by the API |
+| `nombre` | string | Given name(s) |
+| `apellidos` | string | Family name(s) |
+| `nombreCompleto` | string | Full name concatenated by the API |
+| `email` | string | Institutional email address — used as login credential |
+| `rol` | string | Role (`ADMIN`, `JEFE_AREA`, `EMPLEADO`) |
+| `puesto` | string | Job title (e.g. Director, Coordinador, Auxiliar Administrativo) |
+| `area` | string | Primary area derived from the first entry in `areasPermitidas` |
+| `areasPermitidas` | string[] | List of area names the user can access |
+| `avatar` | string \| null | Cloudinary URL of the user's profile picture |
+| `activo` | boolean | Whether the account is active and can log in |
+| `primerIngreso` | boolean | Whether the user must change their password on first login |
+| `avisoPrivacidadAceptado` | boolean | Whether the user has accepted the privacy notice |
+
+---
+
+## Viewing the user list
+
+Navigate to **Gestión de Usuarios** in the sidebar. The page loads all users from the API (`GET /admin/users`) and shows a summary card for each one.
+
+Each card displays:
+- Avatar (or initials if no photo is set)
+- Full name and email
+- Role badge (e.g. "Director", "Auxiliar Administrativo")
+- Primary area
+- Last access timestamp
+
+Use the search bar to filter users by **name**, **email**, or **area** in real time.
+
+The statistics panel at the top of the page shows:
+- Total users
+- Active users
+- Number of Directors (jefe_area)
+- Number of Auxiliares Administrativos
+
+---
+
+## Viewing user detail
+
+Click **Ver Detalle** on any user card to open the `DetalleUsuario` view. This page shows the full profile of the selected user and provides administrative actions.
+
+<AccordionGroup>
+  <Accordion title="Information shown">
+    - Full name, email, role, and primary area
+    - Account status badge (active / inactive)
+    - Permissions summary: **Lectura** (read), **Escritura** (write documents), **Edición** (edit machotes)
+    - Account creation date and last access timestamp
+  </Accordion>
+  <Accordion title="Actions available to administrators">
+    - **Edit** name, email, role, area, and permissions
+    - **Upload avatar** — accepts JPG, PNG, or WebP up to 5 MB (stored via `POST /admin/users/:id/avatar`)
+    - **Activate / Deactivate account** — toggles the `activo` flag via `PATCH /admin/users/:id/toggle`
+    - **Update permitted areas** — via `PATCH /admin/users/:id/areas`
+  </Accordion>
+  <Accordion title="Actions available to area heads">
+    - **Reset password** for users in their area — requires minimum 6 characters, sent via `PATCH /auth/users/:id/password`
+    - Area heads cannot activate/deactivate accounts or change roles.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Creating a new user
+
+<Steps>
+  <Step title="Open the new user dialog">
+    Click **Nuevo Usuario** in the top-right corner of the Gestión de Usuarios page.
+  </Step>
+  <Step title="Fill in required fields">
+    Provide the following information — all fields are required:
+    - **Nombre(s)** — given name(s)
+    - **Apellidos** — family name(s)
+    - **Correo Electrónico** — institutional email, e.g. `nombre@atotonilco.gob.mx`
+    - **Puesto** — select Director, Coordinador, or Auxiliar Administrativo
+    - **Áreas Permitidas** — select one or more areas the user may access
+  </Step>
+  <Step title="Set a temporary password">
+    Enter a password manually or click **Generar** to create a simple memorable password (e.g. `atotonilco352`). Use the copy button to copy it before submitting. The minimum length is 6 characters.
+  </Step>
+  <Step title="Create the account">
+    Click **Crear Usuario**. The system calls `POST /admin/users` and adds the new user to the list. The password is shown in the confirmation toast — save it before dismissing.
+  </Step>
+</Steps>
+
+<Note>
+  The new user will be created with `primerIngreso: true`. On first login, they will be required to change their password before accessing the system.
+</Note>
+
+---
+
+## Account activation and deactivation
+
+The `activo` field controls whether a user can log in. When a user is deactivated:
+- They cannot authenticate — the login API returns a "Usuario inactivo" error.
+- Their account and document history are preserved.
+- The status badge in the user list shows "Inactivo" in gray.
+
+To change the status, open **Ver Detalle** for the user and click **Activar Cuenta** or **Desactivar Cuenta**. A confirmation dialog is shown before the change is applied. The action calls `PATCH /admin/users/:id/toggle`.
+
+Deactivation is reversible at any time.
+
+---
+
+## First-login password change (`primerIngreso`)
+
+When an account is created by an administrator, the `primerIngreso` flag is set to `true`. The next time that user logs in, the system intercepts the session and forces them to set a new password via `PATCH /auth/cambiar-password-inicial` before they can access the dashboard.
+
+Once the password is changed, `primerIngreso` is set to `false` and the user proceeds normally.
+
+---
+
+## Assigning areas to users (`areasPermitidas`)
+
+`areasPermitidas` is an array of area names that determines which areas a user can access.
+
+- Administrators can select multiple areas using the checkbox grid in the new user form or the edit view.
+- Area heads can only assign areas from their own `areasPermitidas` list.
+- The first entry in `areasPermitidas` is used as the user's primary `area`, shown in the sidebar and user cards.
+
+To update a user's areas after creation, open their detail page, click **Editar**, modify the `areasPermitidas` checkboxes, and click **Guardar**. This calls `PATCH /admin/users/:id/areas`.
+
+---
+
+## Quick links
+
+<CardGroup cols={2}>
+  <Card title="Area management" icon="building" href="/admin/area-management">
+    Learn about the nine predefined municipal areas and how they are structured.
+  </Card>
+  <Card title="Letterhead management" icon="image" href="/admin/letterhead-management">
+    Upload and manage official letterheads for each area.
+  </Card>
+</CardGroup>
+
+<Note>
+  Users can edit their own **avatar** and view their personal information on their profile page (**Mi Perfil** in the sidebar). They cannot change their role, area, or email — those fields require an administrator.
+</Note>

@@ -1,0 +1,165 @@
+---
+title: "Login"
+description: "Authenticate a user and receive a JWT token for use in all subsequent API requests."
+---
+
+## Endpoint
+
+```
+POST https://login-pwa-atoto.onrender.com/auth/login
+```
+
+No authentication required. This endpoint is public.
+
+<Warning>
+  This API is hosted on Render.com's free tier. If the service has been idle, the first request may take up to **30 seconds** while the server cold-starts. The client automatically retries once after 1 second on timeout — plan for this latency in your UI.
+</Warning>
+
+---
+
+## Request body
+
+<ParamField body="email" type="string" required>
+  The user's registered email address.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  The user's password in plain text. Transmitted over HTTPS.
+</ParamField>
+
+### Example
+
+```bash
+curl -X POST https://login-pwa-atoto.onrender.com/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "juarez.m@atotonilco.gob.mx",
+    "password": "mi_contrasena_segura"
+  }'
+```
+
+---
+
+## Response
+
+Returns a `token` string and a `perfil` object representing the authenticated user.
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "perfil": {
+    "id": "64f2a1b3c9e4f5d6e7a8b9c0",
+    "nombre": "Martín",
+    "apellidos": "Juárez Hernández",
+    "nombreCompleto": "Martín Juárez Hernández",
+    "email": "juarez.m@atotonilco.gob.mx",
+    "rol": "JEFE_AREA",
+    "puesto": "Jefe de Recursos Humanos",
+    "areasPermitidas": ["Recursos Humanos"],
+    "avatar": "https://res.cloudinary.com/demo/image/upload/v1/avatars/64f2a1b3.jpg",
+    "activo": true,
+    "createdAt": "2024-01-15T09:00:00.000Z",
+    "ultimoLogin": "2026-04-06T18:32:11.000Z",
+    "loginActual": "2026-04-07T08:00:00.000Z",
+    "avisoPrivacidadAceptado": true,
+    "primerIngreso": false
+  }
+}
+```
+
+<ResponseField name="token" type="string">
+  A signed JWT. Include this in the `Authorization` header of every subsequent request as `Bearer <token>`. Store it in `localStorage` under the key `auth_token`.
+</ResponseField>
+
+<ResponseField name="perfil" type="object">
+  The authenticated user's profile.
+
+  <Expandable title="perfil fields">
+    <ResponseField name="id" type="string">
+      MongoDB document ID for the user.
+    </ResponseField>
+
+    <ResponseField name="nombre" type="string">
+      First name.
+    </ResponseField>
+
+    <ResponseField name="apellidos" type="string">
+      Last name(s).
+    </ResponseField>
+
+    <ResponseField name="nombreCompleto" type="string">
+      Full display name (`nombre + " " + apellidos`).
+    </ResponseField>
+
+    <ResponseField name="email" type="string">
+      Email address. Also used as the unique login identifier.
+    </ResponseField>
+
+    <ResponseField name="rol" type="string">
+      Authorization role. One of:
+      - `ADMIN` — full system access
+      - `JEFE_AREA` — area manager, can manage templates and users within their area
+      - `EMPLEADO` — standard employee access
+      - `ASISTENTE` — assistant-level access
+    </ResponseField>
+
+    <ResponseField name="areasPermitidas" type="string[]">
+      List of municipal areas the user has access to. Examples: `"Recursos Humanos"`, `"Tesorería"`, `"Obras Públicas"`.
+    </ResponseField>
+
+    <ResponseField name="puesto" type="string">
+      Job title within the municipality.
+    </ResponseField>
+
+    <ResponseField name="avatar" type="string | null">
+      Cloudinary URL for the user's profile photo, or `null` if none has been uploaded.
+    </ResponseField>
+
+    <ResponseField name="activo" type="boolean">
+      Whether the account is enabled. Inactive accounts cannot log in.
+    </ResponseField>
+
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp of when the account was created.
+    </ResponseField>
+
+    <ResponseField name="ultimoLogin" type="string | null">
+      ISO 8601 timestamp of the previous successful login, or `null` for first-ever login.
+    </ResponseField>
+
+    <ResponseField name="loginActual" type="string">
+      ISO 8601 timestamp of the current login session.
+    </ResponseField>
+
+    <ResponseField name="avisoPrivacidadAceptado" type="boolean">
+      Whether the user has accepted the privacy notice. If `false`, the application will prompt acceptance before granting access.
+    </ResponseField>
+
+    <ResponseField name="primerIngreso" type="boolean">
+      `true` on the very first login. When set, the application forces the user to change their password before proceeding.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## Using the token
+
+After a successful login, attach the token to every protected request using the `Authorization` header:
+
+```bash
+curl https://login-pwa-atoto.onrender.com/auth/perfil \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+The application stores the token in `localStorage` under the key `auth_token` and reads it automatically for all API calls.
+
+---
+
+## Error responses
+
+| HTTP status | `error` message | Cause |
+|---|---|---|
+| `401` | `Credenciales invalidas` | Email not found or password does not match. |
+| `403` | `Usuario inactivo` | The account exists but has been disabled by an administrator. |
+| `400` | Field validation errors | Missing `email` or `password` in the request body. |

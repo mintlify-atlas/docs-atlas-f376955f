@@ -1,0 +1,202 @@
+---
+title: "Create a document"
+description: "Save a filled-in machote as a document. Use `borrador` for drafts and `final` for completed, official documents."
+---
+
+## Endpoint
+
+```
+POST https://machotes-guardado.onrender.com/documentos
+```
+
+Requires a valid JWT token in the `Authorization` header.
+
+<Warning>
+  This API is hosted on Render.com's free tier. If the service has been idle, the first request may take up to **30 seconds** while the server cold-starts. The client automatically retries once after 1 second on timeout — plan for this latency in your UI.
+</Warning>
+
+---
+
+## Request body
+
+<ParamField body="machoteId" type="string" required>
+  The `_id` of the machote (template) this document is based on. The machote defines which variables are available in `campos`.
+</ParamField>
+
+<ParamField body="campos" type="object" required>
+  A key-value map of the filled field values. Each key is a variable name declared in the machote (the text between square brackets in the template content, e.g. `[NombreEmpleado]`). Each value is the string the user entered for that variable.
+
+  ```json
+  {
+    "NombreEmpleado": "Juan García López",
+    "FechaInicio": "01/01/2025",
+    "PuestoTrabajo": "Auxiliar Administrativo"
+  }
+  ```
+
+  Keys that are not defined in the machote's `variables` array are ignored by the server. All `required` variables should be present to produce a valid document.
+</ParamField>
+
+<ParamField body="status" type="string" default="borrador">
+  Lifecycle state of the document. Accepted values:
+
+  - `borrador` — the document is a draft. It can be edited or promoted to `final` later.
+  - `final` — the document is completed and considered official. Submit this value when the user explicitly approves and prints the document.
+</ParamField>
+
+<ParamField body="actor" type="object">
+  Identity of the user creating the document, used to populate the `createdBy` audit field. If omitted, the server records what it can from the authenticated token.
+
+  <Expandable title="actor fields">
+    <ParamField body="actor.userId" type="string">
+      MongoDB ID or email address of the user.
+    </ParamField>
+
+    <ParamField body="actor.name" type="string">
+      Full display name of the user.
+    </ParamField>
+
+    <ParamField body="actor.email" type="string">
+      Email address of the user.
+    </ParamField>
+
+    <ParamField body="actor.role" type="string">
+      Authorization role. One of `ADMIN`, `JEFE_AREA`, `EMPLEADO`, `ASISTENTE`.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+---
+
+## Example
+
+<CodeGroup>
+
+```bash Create a draft
+curl -X POST https://machotes-guardado.onrender.com/documentos \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "machoteId": "664a1f2e3b8c9d0e1f2a3b4c",
+    "campos": {
+      "NombreEmpleado": "Juan García López",
+      "FechaInicio": "01/01/2025",
+      "PuestoTrabajo": "Auxiliar Administrativo"
+    },
+    "status": "borrador",
+    "actor": {
+      "userId": "64f2a1b3c9e4f5d6e7a8b9c0",
+      "name": "Martín Juárez Hernández",
+      "email": "juarez.m@atotonilco.gob.mx",
+      "role": "JEFE_AREA"
+    }
+  }'
+```
+
+```bash Create a final document
+curl -X POST https://machotes-guardado.onrender.com/documentos \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "machoteId": "664a1f2e3b8c9d0e1f2a3b4c",
+    "campos": {
+      "NombreEmpleado": "Juan García López",
+      "FechaInicio": "01/01/2025",
+      "PuestoTrabajo": "Auxiliar Administrativo"
+    },
+    "status": "final",
+    "actor": {
+      "userId": "64f2a1b3c9e4f5d6e7a8b9c0",
+      "name": "Martín Juárez Hernández",
+      "email": "juarez.m@atotonilco.gob.mx",
+      "role": "JEFE_AREA"
+    }
+  }'
+```
+
+</CodeGroup>
+
+---
+
+## Response
+
+Returns the created `DocumentoAPI` object.
+
+```json
+{
+  "_id": "6650c3d4e5f6a7b8c9d0e1f2",
+  "machoteId": "664a1f2e3b8c9d0e1f2a3b4c",
+  "campos": {
+    "NombreEmpleado": "Juan García López",
+    "FechaInicio": "01/01/2025",
+    "PuestoTrabajo": "Auxiliar Administrativo"
+  },
+  "status": "borrador",
+  "createdBy": {
+    "userId": "64f2a1b3c9e4f5d6e7a8b9c0",
+    "name": "Martín Juárez Hernández",
+    "email": "juarez.m@atotonilco.gob.mx",
+    "role": "JEFE_AREA"
+  },
+  "createdAt": "2026-04-07T08:15:00.000Z",
+  "updatedAt": "2026-04-07T08:15:00.000Z"
+}
+```
+
+<ResponseField name="_id" type="string">
+  MongoDB document ID. Use this as the `:id` path parameter in subsequent GET, PUT, or DELETE requests.
+</ResponseField>
+
+<ResponseField name="machoteId" type="string">
+  ID of the machote this document was generated from.
+</ResponseField>
+
+<ResponseField name="campos" type="object">
+  The key-value map of filled field values, as submitted.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  `borrador` or `final`. Reflects the value submitted in the request.
+</ResponseField>
+
+<ResponseField name="createdBy" type="object">
+  Audit record of who created the document.
+
+  <Expandable title="createdBy fields">
+    <ResponseField name="createdBy.userId" type="string">
+      MongoDB ID or email of the creator.
+    </ResponseField>
+    <ResponseField name="createdBy.name" type="string">
+      Full name of the creator.
+    </ResponseField>
+    <ResponseField name="createdBy.email" type="string">
+      Email of the creator.
+    </ResponseField>
+    <ResponseField name="createdBy.role" type="string">
+      Role of the creator at the time of creation.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="updatedBy" type="object | undefined">
+  Populated after the first PUT request. Same shape as `createdBy`.
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  ISO 8601 timestamp of when the document was created.
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp of the last update.
+</ResponseField>
+
+---
+
+## Error responses
+
+| HTTP status | Cause |
+|---|---|
+| `400` | Missing required field (`machoteId` or `campos`). |
+| `401` | Missing or invalid `Authorization` header. |
+| `404` | The referenced `machoteId` does not exist. |
+| `500` | Internal server error. Retry after a few seconds if the service just cold-started. |

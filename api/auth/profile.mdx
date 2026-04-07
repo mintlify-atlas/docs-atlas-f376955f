@@ -1,0 +1,133 @@
+---
+title: "Get profile"
+description: "Retrieve the profile of the currently authenticated user and validate an existing session token."
+---
+
+## Endpoint
+
+```
+GET https://login-pwa-atoto.onrender.com/auth/perfil
+```
+
+<Note>
+  This endpoint is the canonical way to validate whether a stored token is still active. Call it on application startup to restore a session — if it returns `401`, the token has expired and the user must log in again.
+</Note>
+
+---
+
+## Request headers
+
+<ParamField header="Authorization" type="string" required>
+  A valid JWT issued by `POST /auth/login`, in the format `Bearer <token>`.
+</ParamField>
+
+### Example
+
+```bash
+curl https://login-pwa-atoto.onrender.com/auth/perfil \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+---
+
+## Response
+
+Returns the `perfil` object for the authenticated user.
+
+```json
+{
+  "perfil": {
+    "id": "64f2a1b3c9e4f5d6e7a8b9c0",
+    "nombre": "Martín",
+    "apellidos": "Juárez Hernández",
+    "nombreCompleto": "Martín Juárez Hernández",
+    "email": "juarez.m@atotonilco.gob.mx",
+    "rol": "JEFE_AREA",
+    "puesto": "Jefe de Recursos Humanos",
+    "areasPermitidas": ["Recursos Humanos"],
+    "avatar": "https://res.cloudinary.com/demo/image/upload/v1/avatars/64f2a1b3.jpg",
+    "activo": true,
+    "createdAt": "2024-01-15T09:00:00.000Z",
+    "ultimoLogin": "2026-04-06T18:32:11.000Z",
+    "loginActual": "2026-04-07T08:00:00.000Z",
+    "avisoPrivacidadAceptado": true,
+    "primerIngreso": false
+  }
+}
+```
+
+<ResponseField name="perfil" type="object">
+  The authenticated user's profile.
+
+  <Expandable title="perfil fields">
+    <ResponseField name="id" type="string">
+      MongoDB document ID for the user.
+    </ResponseField>
+
+    <ResponseField name="nombre" type="string">
+      First name.
+    </ResponseField>
+
+    <ResponseField name="apellidos" type="string">
+      Last name(s).
+    </ResponseField>
+
+    <ResponseField name="nombreCompleto" type="string">
+      Full display name (`nombre + " " + apellidos`).
+    </ResponseField>
+
+    <ResponseField name="email" type="string">
+      Email address used to log in.
+    </ResponseField>
+
+    <ResponseField name="rol" type="string">
+      Authorization role. One of `ADMIN`, `JEFE_AREA`, `EMPLEADO`, or `ASISTENTE`.
+    </ResponseField>
+
+    <ResponseField name="areasPermitidas" type="string[]">
+      Municipal areas the user can access. Used to filter machotes and documents by area.
+    </ResponseField>
+
+    <ResponseField name="puesto" type="string">
+      Job title within the municipality.
+    </ResponseField>
+
+    <ResponseField name="avatar" type="string | null">
+      Cloudinary URL for the profile photo, or `null`.
+    </ResponseField>
+
+    <ResponseField name="activo" type="boolean">
+      Whether the account is currently enabled.
+    </ResponseField>
+
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp of account creation.
+    </ResponseField>
+
+    <ResponseField name="ultimoLogin" type="string | null">
+      ISO 8601 timestamp of the previous login session.
+    </ResponseField>
+
+    <ResponseField name="loginActual" type="string">
+      ISO 8601 timestamp of when the current token was issued.
+    </ResponseField>
+
+    <ResponseField name="avisoPrivacidadAceptado" type="boolean">
+      Whether the user has accepted the privacy notice.
+    </ResponseField>
+
+    <ResponseField name="primerIngreso" type="boolean">
+      `true` if the user has never logged in before. Triggers forced password change.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## Error responses
+
+| HTTP status | Behavior |
+|---|---|
+| `401` | Token is missing, malformed, or expired. The application removes the stored `auth_token` from `localStorage` and redirects the user to `/login`. |
+
+When a `401` is received, do not retry the request — redirect the user to the login page immediately. The token must be obtained again via `POST /auth/login`.
